@@ -4,77 +4,61 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>2026 團隊同步休假管理</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
         :root { --KGB200: #ff6b6b; --KGB210: #4ecdc4; --KGB220: #feca57; --KGB250: #54a0ff; --EVENT: #af7ac5; }
-        body { font-family: -apple-system, system-ui, sans-serif; background: #f4f7f9; margin: 0; padding: 10px; }
-        .header { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 15px; }
-        .legend { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; font-size: 0.75rem; }
-        .badge { padding: 3px 8px; border-radius: 6px; color: white; display: flex; align-items: center; gap: 4px; }
-        
-        /* 日曆網格 */
-        .calendar-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; }
-        .month-box { background: white; border-radius: 12px; padding: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
-        .month-name { text-align: center; font-weight: bold; margin-bottom: 10px; font-size: 1.1rem; color: #333; }
-        .days-header { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 0.8rem; color: #999; margin-bottom: 5px; }
-        .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
-        
-        /* 每個日期的方格 */
-        .day { aspect-ratio: 1; border: 1px solid #f0f0f0; border-radius: 8px; cursor: pointer; display: flex; flex-direction: column; position: relative; min-height: 55px; background: #fff; transition: 0.2s; overflow: hidden; }
-        .day:hover { background: #f0f7ff; border-color: #007bff; }
-        .date-num { font-size: 0.8rem; font-weight: 600; margin: 3px 0 0 5px; color: #666; }
-        
-        /* 活動文字標籤 */
-        .event-label { font-size: 9px; color: white; background: var(--EVENT); border-radius: 3px; padding: 1px 2px; margin: 2px 3px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        
-        /* 圓點容器 */
-        .dots { display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; margin-top: auto; padding-bottom: 4px; width: 100%; }
+        body { font-family: sans-serif; background: #f4f7f9; margin: 0; padding: 10px; }
+        .header { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        .legend { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+        .badge { padding: 3px 8px; border-radius: 6px; color: white; font-size: 0.75rem; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; }
+        .month-box { background: white; border-radius: 12px; padding: 12px; }
+        .month-name { text-align: center; font-weight: bold; margin-bottom: 10px; }
+        .days-header, .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; }
+        .day { aspect-ratio: 1; border: 1px solid #eee; border-radius: 6px; cursor: pointer; position: relative; min-height: 50px; display: flex; flex-direction: column; }
+        .date-num { font-size: 0.8rem; margin: 2px; }
+        .event-label { font-size: 9px; background: var(--EVENT); color: white; border-radius: 3px; margin: 2px; padding: 1px; text-align: center; overflow: hidden; }
+        .dots { display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; margin-top: auto; padding-bottom: 4px; }
         .dot { width: 6px; height: 6px; border-radius: 50%; }
-        
         .bg-KGB200 { background: var(--KGB200); } .bg-KGB210 { background: var(--KGB210); } 
         .bg-KGB220 { background: var(--KGB220); } .bg-KGB250 { background: var(--KGB250); }
-        
-        /* 彈窗樣式 */
-        .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center; z-index:100; backdrop-filter: blur(2px); }
-        .modal-content { background:white; padding:20px; border-radius:18px; width:90%; max-width:360px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        select, button { width:100%; padding: 12px; margin: 6px 0; border-radius: 10px; border:1px solid #ddd; font-size: 1rem; }
-        .btn-save { background: #007bff; color: white; border: none; font-weight: bold; cursor: pointer; }
-        .btn-save:disabled { background: #ccc; }
-        .leave-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #f8f9fa; border-radius: 10px; margin-bottom: 5px; font-size: 0.95rem; }
-        .btn-delete { background: #ffeded; color: #ff4d4f; border: 1px solid #ffccc7; width: auto; padding: 3px 8px; font-size: 0.75rem; margin: 0; }
+        .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:100; }
+        .modal-content { background:white; padding:20px; border-radius:15px; width:85%; max-width:350px; }
     </style>
 </head>
 <body>
     <div id="app">
         <div class="header">
-            <h2 style="margin:0; font-size: 1.2rem;">📅 2026 團隊同步休假管理</h2>
+            <h2 style="margin:0">📅 2026 團隊同步休假管理</h2>
             <div class="legend">
-                <span class="badge bg-KGB200">KGB200</span><span class="badge bg-KGB210">KGB210</span>
-                <span class="badge bg-KGB220">KGB220</span><span class="badge bg-KGB250">KGB250</span>
-                <span class="badge" style="background:var(--EVENT)">活動 🟣</span>
+                <span class="badge bg-KGB200">KGB200</span>
+                <span class="badge bg-KGB210">KGB210</span>
+                <span class="badge bg-KGB220">KGB220</span>
+                <span class="badge bg-KGB250">KGB250</span>
+                <span class="badge" style="background:var(--EVENT)">活動</span>
             </div>
-            <div style="margin-top:12px; display: flex; align-items: center; gap: 8px;">
-                <label style="font-size:0.9rem; white-space:nowrap;">身份：</label>
-                <select v-model="currentUserEmail" style="margin:0; flex-grow:1;">
-                    <option v-for="u in staff" :key="u.Email" :value="u.Email">{{ u.Name }} ({{ u.Role }})</option>
+            <div style="margin-top:15px;">
+                <label>身份：</label>
+                <select v-model="currentUserEmail" style="padding:5px;">
+                    <option v-for="u in staff" :value="u.Email">{{ u.Name }}</option>
                 </select>
-                <button @click="fetchData" style="width:auto; margin:0; padding:8px 12px; font-size:0.8rem">🔄 整理</button>
+                <button @click="fetchData" style="margin-left:10px; padding:5px 10px;">🔄 整理</button>
             </div>
         </div>
 
         <div class="calendar-grid">
             <div v-for="m in 12" :key="m" class="month-box">
                 <div class="month-name">2026年 {{ m }}月</div>
-                <div class="days-header"><div v-for="d in ['日','一','二','三','四','五','六']" :key="d">{{ d }}</div></div>
+                <div class="days-header">
+                    <div v-for="d in ['日','一','二','三','四','五','六']">{{ d }}</div>
+                </div>
                 <div class="days-grid">
-                    <div v-for="b in getPadding(m)" :key="'p'+b" class="day" style="border:none; cursor:default; background:transparent"></div>
-                    <div v-for="d in getDays(m)" :key="'d'+d" class="day" @click="openModal(m, d)">
+                    <div v-for="b in getPadding(m)" class="day" style="border:none;"></div>
+                    <div v-for="d in getDays(m)" class="day" @click="openModal(m, d)">
                         <span class="date-num">{{ d }}</span>
-                        <div v-if="specialEvents[m+'-'+d]" class="event-label" :title="specialEvents[m+'-'+d]">
-                            {{ specialEvents[m+'-'+d] }}
-                        </div>
+                        <div v-if="specialEvents[m+'-'+d]" class="event-label">{{ specialEvents[m+'-'+d] }}</div>
                         <div class="dots">
-                            <div v-for="(l, idx) in getLeaves(m, d)" :key="idx" class="dot" :class="'bg-' + l.Group"></div>
+                            <div v-for="(l, idx) in getLeaves(m, d)" :class="['dot', 'bg-'+l.Group]"></div>
                         </div>
                     </div>
                 </div>
@@ -83,8 +67,109 @@
 
         <div v-if="showModal" class="modal" @click.self="showModal = false">
             <div class="modal-content">
-                <h3 style="margin-top:0">📍 2026/{{ selMonth }}/{{ selDay }}</h3>
-                
-                <div v-if="specialEvents[selMonth+'-'+selDay]" style="background:#f3ebf7; color:var(--EVENT); font-weight:bold; margin-bottom:12px; padding:10px; text-align:center; border-radius:10px; border:1px solid #e1cfea">
+                <h3>📍 2026/{{ selMonth }}/{{ selDay }}</h3>
+                <div v-if="specialEvents[selMonth+'-'+selDay]" style="color:var(--EVENT); font-weight:bold; margin-bottom:10px;">
                     ⭐ 活動：{{ specialEvents[selMonth+'-'+selDay] }}
                 </div>
+                <div v-for="l in getLeaves(selMonth, selDay)" style="margin-bottom:5px; display:flex; justify-content:space-between;">
+                    <span>{{ l.Name }} ({{ l.Group }})</span>
+                    <button v-if="canDelete(l)" @click="confirmDelete(l)" style="font-size:10px;">刪除</button>
+                </div>
+                <hr>
+                <select v-model="formName" style="width:100%; padding:10px; margin-bottom:10px;">
+                    <option v-for="s in filteredStaff" :value="s.Name">{{ s.Name }}</option>
+                </select>
+                <button @click="saveLeave" :disabled="isSaving" style="width:100%; padding:10px; background:#007bff; color:white; border:none; border-radius:5px;">
+                    {{ isSaving ? '處理中...' : '確認登記' }}
+                </button>
+                <button @click="showModal = false" style="width:100%; margin-top:10px; background:none; border:none; color:#999;">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted } = Vue;
+        // ！！！請務必把下面的 URL 換成您自己的 ！！！
+        const API_URL = "https://script.google.com/macros/s/AKfycbyQ2pyXJZfAZVMA1SB8XJc2m3i4tdqTYJCwUa1KoGodr1tSwy_dfljN_CkGIGElA6Uo7Q/exec";
+
+        createApp({
+            setup() {
+                const staff = ref([
+                    { Name: "Tony", Group: "KGB200", Role: "Admin", Email: "Tony.Pan@acer.com" },
+                    { Name: "Esther", Group: "KGB210", Role: "Admin", Email: "Esther.Yu@acer.com" },
+                    { Name: "Jasmin", Group: "KGB210", Role: "Member", Email: "Jasmin.Ho@acer.com" },
+                    { Name: "Sophie", Group: "KGB210", Role: "Member", Email: "Sophie.Wu@acer.com" },
+                    { Name: "Edna", Group: "KGB210", Role: "Member", Email: "Edna.Yang@acer.com" },
+                    { Name: "Sandy", Group: "KGB210", Role: "Member", Email: "Sandy.Chen@acer.com" },
+                    { Name: "Mars", Group: "KGB210", Role: "Member", Email: "Mars.Chang@acer.com" },
+                    { Name: "Helen", Group: "KGB210", Role: "Member", Email: "Helen.Wang@acer.com" },
+                    { Name: "Ann", Group: "KGB210", Role: "Member", Email: "Ann.Lai@acer.com" },
+                    { Name: "Harry", Group: "KGB210", Role: "Admin", Email: "Harry.Huang@acer.com" },
+                    { Name: "Ming", Group: "KGB210", Role: "Member", Email: "Ming.Sung@acer.com" },
+                    { Name: "Dino", Group: "KGB210", Role: "Member", Email: "Dino.Hung@acer.com" },
+                    { Name: "Richard", Group: "KGB210", Role: "Admin", Email: "Richard.Tseng@acer.com" },
+                    { Name: "TsaiMing", Group: "KGB210", Role: "Member", Email: "TsaiMing.Hu@acer.com" },
+                    { Name: "Ben", Group: "KGB220", Role: "Admin", Email: "Benjamin.Hsu@acer.com" },
+                    { Name: "Kiwi", Group: "KGB220", Role: "Member", Email: "Kiwi.Li@acer.com" },
+                    { Name: "Brade", Group: "KGB220", Role: "Member", Email: "Brade.Hu@acer.com" },
+                    { Name: "Alice", Group: "KGB220", Role: "Member", Email: "Alice.Yang@acer.com" },
+                    { Name: "Emma", Group: "KGB220", Role: "Member", Email: "Emma.Chung@acer.com" },
+                    { Name: "Danny", Group: "KGB220", Role: "Member", Email: "Danny.Lin@acer.com" },
+                    { Name: "Cooper", Group: "KGB220", Role: "Member", Email: "Cooper.Zhuang@acer.com" },
+                    { Name: "Vivian", Group: "KGB250", Role: "Admin", Email: "Vivian.Chiang@acer.com" },
+                    { Name: "Sylvia", Group: "KGB250", Role: "Member", Email: "Sylvia.Tsai@acer.com" },
+                    { Name: "Kathryn", Group: "KGB250", Role: "Member", Email: "Kathryn.Chou@acer.com" },
+                    { Name: "Jeff", Group: "KGB250", Role: "Member", Email: "Jeff.Liu@acer.com" }
+                ]);
+                const leaves = ref([]);
+                const specialEvents = ref({});
+                const currentUserEmail = ref(staff.value[0].Email);
+                const showModal = ref(false);
+                const isSaving = ref(false);
+                const selMonth = ref(0); const selDay = ref(0);
+                const formName = ref("");
+
+                const currentUser = computed(() => staff.value.find(u => u.Email === currentUserEmail.value));
+                const isAdmin = computed(() => currentUser.value?.Role === 'Admin');
+                const filteredStaff = computed(() => isAdmin.value ? staff.value : [currentUser.value]);
+
+                const fetchData = async () => {
+                    try {
+                        const res = await fetch(API_URL + "?t=" + Date.now());
+                        const data = await res.json();
+                        leaves.value = data.leaves || [];
+                        specialEvents.value = data.events || {};
+                    } catch (e) { console.error("Error:", e); }
+                };
+
+                const saveLeave = async () => {
+                    isSaving.value = true;
+                    const person = staff.value.find(s => s.Name === formName.value);
+                    try {
+                        await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "add", Date: `2026-${selMonth.value}-${selDay.value}`, Name: person.Name, Group: person.Group }) });
+                        setTimeout(async () => { await fetchData(); showModal.value = false; isSaving.value = false; }, 1000);
+                    } catch (e) { isSaving.value = false; }
+                };
+
+                const confirmDelete = async (l) => {
+                    if(!confirm("確定刪除？")) return;
+                    isSaving.value = true;
+                    try {
+                        await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "delete", Date: l.Date, Name: l.Name }) });
+                        setTimeout(async () => { await fetchData(); isSaving.value = false; }, 1000);
+                    } catch (e) { isSaving.value = false; }
+                };
+
+                const getDays = (m) => new Date(2026, m, 0).getDate();
+                const getPadding = (m) => new Date(2026, m - 1, 1).getDay();
+                const getLeaves = (m, d) => leaves.value.filter(l => l.Date === `2026-${m}-${d}`);
+                const openModal = (m, d) => { selMonth.value = m; selDay.value = d; formName.value = currentUser.value.Name; showModal.value = true; };
+                const canDelete = (l) => isAdmin.value || l.Name === currentUser.value.Name;
+
+                onMounted(fetchData);
+                return { staff, currentUserEmail, isAdmin, filteredStaff, showModal, selMonth, selDay, formName, getDays, getPadding, getLeaves, openModal, saveLeave, fetchData, isSaving, canDelete, confirmDelete, specialEvents };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
