@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Team Day-off Tracker</title>
+    <title>Day-off Tracker 2026</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
         :root { --KGB200: #ff6b6b; --KGB210: #4ecdc4; --KGB220: #feca57; --KGB250: #54a0ff; --EVENT: #af7ac5; }
@@ -19,7 +19,6 @@
         .dropdown-selected { background: white; border: 1px solid #ddd; border-radius: 10px; padding: 10px 15px; cursor: pointer; display: flex; align-items: center; font-size: 1rem; }
         .dropdown-list { position: absolute; top: 110%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); z-index: 2000; max-height: 250px; overflow-y: auto; }
         .dropdown-item { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #f5f5f5; font-weight: bold; display: flex; align-items: center; }
-        .dropdown-item:hover { background: #f0f7ff; }
 
         /* Calendar Grid */
         .calendar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
@@ -35,20 +34,21 @@
         /* Status Dots & Icons */
         .dots { display: flex; flex-wrap: wrap; gap: 2px; margin-top: auto; }
         .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-        .dot-am { clip-path: inset(0 50% 0 0); width: 14px; } /* 左半圓 */
-        .dot-pm { clip-path: inset(0 0 0 50%); width: 14px; margin-left: -4px; } /* 右半圓 */
+        .dot-am { clip-path: inset(0 50% 0 0); width: 14px; } 
+        .dot-pm { clip-path: inset(0 0 0 50%); width: 14px; margin-left: -4px; } 
         .icon-small { font-size: 12px; line-height: 1; }
         
         .bg-KGB200 { background: var(--KGB200); } .bg-KGB210 { background: var(--KGB210); } 
         .bg-KGB220 { background: var(--KGB220); } .bg-KGB250 { background: var(--KGB250); }
-        .event-label { font-size: 0.6rem; color: white; background: var(--EVENT); border-radius: 3px; padding: 1px 2px; margin-top: 2px; text-align: center; white-space: nowrap; overflow: hidden; }
+        .event-label { font-size: 0.6rem; color: white; background: var(--EVENT); border-radius: 3px; padding: 1px 2px; margin-top: 2px; text-align: center; white-space: nowrap; }
 
         /* Modal Area */
         .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center; z-index:3000; }
-        .modal-content { background:white; padding:20px; border-radius:18px; width:90%; max-width:360px; }
-        .leave-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #f8f9fa; border-radius: 8px; margin-bottom: 5px; font-size: 0.85rem; }
+        .modal-content { background:white; padding:20px; border-radius:18px; width:90%; max-width:380px; }
+        .leave-display-area { max-height: 120px; overflow-y: auto; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .leave-tag { display: flex; align-items: center; justify-content: space-between; background: #f8f9fa; padding: 8px 12px; border-radius: 10px; margin-bottom: 6px; border-left: 4px solid #ddd; }
         .btn-save { width: 100%; padding: 12px; background: #007bff; color: white; border: none; font-weight: bold; border-radius: 10px; margin-top: 15px; cursor: pointer; }
-        .btn-close { width: 100%; background: none; border: none; color: #999; text-decoration: underline; margin-top: 10px; cursor: pointer; }
+        .btn-close { width: 100%; background: none; border: none; color: #999; text-decoration: underline; margin-top: 10px; cursor: pointer; width: 100%; }
         
         [v-cloak] { display: none; }
     </style>
@@ -78,7 +78,7 @@
                         </div>
                     </div>
                 </div>
-                <button @click="fetchData" style="padding: 10px; border-radius: 10px; border: 1px solid #ddd; background: white;">🔄</button>
+                <button @click="fetchData" style="padding: 10px; border-radius: 10px; border: 1px solid #ddd; background: white;">刷新</button>
             </div>
         </div>
 
@@ -107,14 +107,18 @@
             <div class="modal-content">
                 <h3 style="margin-top:0">📍 {{ getMonthName(selMonth) }} {{ selDay }}, 2026</h3>
                 
-                <div style="max-height: 100px; overflow-y: auto; margin-bottom:15px;">
-                    <div v-for="l in getLeaves(selMonth, selDay)" :key="l.Name + l.Status" class="leave-item">
-                        <span :style="{color: 'var(--'+l.Group+')'}"><b>{{ l.Name }}</b>: {{ l.Status }}</span>
-                        <button v-if="canDelete(l)" style="color:red; border:none; background:none; font-size:1.2rem;" @click="confirmDelete(l)">✕</button>
+                <div class="leave-display-area">
+                    <div v-if="getLeaves(selMonth, selDay).length === 0" style="color:#999; font-size:0.85rem;">今日尚無登記</div>
+                    <div v-for="l in getLeaves(selMonth, selDay)" :key="l.Name + l.Status" class="leave-tag" :style="{'border-left-color': 'var(--'+l.Group+')'}">
+                        <span>
+                            <b :style="{color: 'var(--'+l.Group+')'}">{{ l.Name }}</b> 
+                            <span style="margin-left:8px; color:#555;">{{ l.Status }}</span>
+                        </span>
+                        <button v-if="canDelete(l)" style="color:#ff4d4f; border:none; background:none; font-size:1.2rem; cursor:pointer;" @click="confirmDelete(l)">✕</button>
                     </div>
                 </div>
 
-                <label style="font-size:0.8rem; color:#666">Who is logging:</label>
+                <label style="font-size:0.8rem; color:#666">登記人：</label>
                 <div class="dropdown-container">
                     <div class="dropdown-selected" @click="isRegDropdownOpen = !isRegDropdownOpen">
                         {{ formName }} <span style="margin-left:auto">▼</span>
@@ -124,7 +128,7 @@
                     </div>
                 </div>
 
-                <label style="font-size:0.8rem; color:#666; margin-top:10px; display:block;">Status:</label>
+                <label style="font-size:0.8rem; color:#666; margin-top:10px; display:block;">類別：</label>
                 <div class="dropdown-container">
                     <div class="dropdown-selected" @click="isStatusDropdownOpen = !isStatusDropdownOpen">
                         {{ formStatus }} <span style="margin-left:auto">▼</span>
@@ -134,8 +138,8 @@
                     </div>
                 </div>
 
-                <button class="btn-save" @click="saveLeave" :disabled="isSaving">{{ isSaving ? 'Saving...' : 'Confirm' }}</button>
-                <button class="btn-close" @click="showModal = false">Cancel</button>
+                <button class="btn-save" @click="saveLeave" :disabled="isSaving">{{ isSaving ? '儲存中...' : '確認登記' }}</button>
+                <button class="btn-close" @click="showModal = false">取消</button>
             </div>
         </div>
     </div>
@@ -179,8 +183,10 @@
                 const isUserDropdownOpen = ref(false); const isRegDropdownOpen = ref(false); const isStatusDropdownOpen = ref(false);
                 const showModal = ref(false); const isSaving = ref(false);
                 const selMonth = ref(0); const selDay = ref(0); 
-                const formName = ref(""); const formStatus = ref("休假");
-                const statusOptions = ["休假", "早上休", "下午休", "早上外拍", "下午外拍", "外拍", "出差"];
+                const formName = ref(""); const formStatus = ref("休假一天");
+                
+                // 更新後的 Status 選項
+                const statusOptions = ["休假一天", "早上休假", "下午休假", "早上外拍", "下午外拍", "全天外拍", "出差"];
 
                 const currentUser = computed(() => staff.value.find(u => u.Email === currentUserEmail.value) || staff.value[0]);
                 const isAdmin = computed(() => currentUser.value?.Role === 'Admin');
@@ -216,22 +222,23 @@
                 };
 
                 const confirmDelete = async (l) => {
-                    if(!confirm("Delete this record?")) return;
+                    if(!confirm("確定刪除此項登記？")) return;
                     try {
                         await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "delete", Date: l.Date, Name: l.Name }) });
                         await fetchData();
                     } catch (e) { console.error(e); }
                 };
 
+                // 半圓圖示邏輯更新
                 const getStatusClass = (s) => {
-                    if (s === "早上休" || s === "早上外拍") return "dot-am";
-                    if (s === "下午休" || s === "下午外拍") return "dot-pm";
+                    if (s === "早上休假" || s === "早上外拍") return "dot-am";
+                    if (s === "下午休假" || s === "下午外拍") return "dot-pm";
                     return "";
                 };
 
                 const openModal = (m, d) => { 
                     selMonth.value = m; selDay.value = d; 
-                    formName.value = currentUser.value.Name; formStatus.value = "休假";
+                    formName.value = currentUser.value.Name; formStatus.value = "休假一天";
                     showModal.value = true; 
                 };
 
@@ -239,10 +246,14 @@
                 return { 
                     staff, currentUser, isUserDropdownOpen, isRegDropdownOpen, isStatusDropdownOpen, 
                     selectUser, selectRegUser, selectStatus, isAdmin, filteredStaff, showModal, 
-                    selMonth, selDay, formName, formStatus, statusOptions, getDays: (m) => new Date(2026, m, 0).getDate(),
-                    getPadding: (m) => new Date(2026, m - 1, 1).getDay(), getLeaves: (m, d) => leaves.value.filter(l => l.Date === `2026-${m}-${d}`),
-                    openModal, saveLeave, fetchData, isSaving, canDelete: (l) => isAdmin.value || l.Name === currentUser.value.Name,
-                    confirmDelete, specialEvents, checkWeekend: (m, d) => { const day = new Date(2026, m - 1, d).getDay(); return day === 0 || day === 6; },
+                    selMonth, selDay, formName, formStatus, statusOptions, 
+                    getDays: (m) => new Date(2026, m, 0).getDate(),
+                    getPadding: (m) => new Date(2026, m - 1, 1).getDay(), 
+                    getLeaves: (m, d) => leaves.value.filter(l => l.Date === `2026-${m}-${d}`),
+                    openModal, saveLeave, fetchData, isSaving, 
+                    canDelete: (l) => isAdmin.value || l.Name === currentUser.value.Name,
+                    confirmDelete, specialEvents, 
+                    checkWeekend: (m, d) => { const day = new Date(2026, m - 1, d).getDay(); return day === 0 || day === 6; },
                     getStatusClass, getMonthName 
                 };
             }
