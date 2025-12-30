@@ -9,30 +9,35 @@
         :root { --KGB200: #ff6b6b; --KGB210: #4ecdc4; --KGB220: #feca57; --KGB250: #54a0ff; --EVENT: #af7ac5; }
         body { font-family: -apple-system, sans-serif; background: #f4f7f9; margin: 0; padding: 10px; }
         .header { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 15px; }
-        .badge { padding: 4px 8px; border-radius: 6px; color: white; font-size: 0.75rem; font-weight: bold; margin-right: 5px; }
-        .calendar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
+        .legend { display: flex; gap: 8px; margin: 10px 0; flex-wrap: wrap; }
+        .badge { padding: 4px 8px; border-radius: 6px; color: white; font-size: 0.75rem; font-weight: bold; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px; }
         .month-box { background: white; border-radius: 12px; padding: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
         .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-        .day { min-height: 70px; border: 1px solid #f0f0f0; border-radius: 8px; cursor: pointer; padding: 4px; display: flex; flex-direction: column; transition: 0.2s; position: relative; }
-        .is-weekend { background: #f8f8f8 !important; }
+        .day { min-height: 75px; border: 1px solid #f0f0f0; border-radius: 8px; cursor: pointer; padding: 4px; display: flex; flex-direction: column; position: relative; }
+        .is-weekend { background: #f9f9f9; }
         .date-num { font-size: 0.75rem; color: #888; margin-bottom: 2px; }
-
-        /* 休假圖示邏輯 */
-        .dots-row { display: flex; flex-wrap: wrap; gap: 2px; margin-top: auto; align-items: center; }
-        .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
         
-        /* 半圓強制覆蓋樣式 */
-        .dot.am-half { border-radius: 10px 0 0 10px !important; width: 6px !important; margin-right: 0px !important; }
-        .dot.pm-half { border-radius: 0 10px 10px 0 !important; width: 6px !important; margin-left: -1px !important; }
+        /* 半圓形與圓點邏輯 */
+        .dots-row { display: flex; flex-wrap: wrap; gap: 2px; margin-top: auto; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .dot.am-half { width: 5px; border-radius: 10px 0 0 10px; margin-right: 0; }
+        .dot.pm-half { width: 5px; border-radius: 0 10px 10px 0; margin-left: -1px; }
+        
+        /* Event 標籤 (紫色) */
+        .event-tag { background: var(--EVENT); color: white; font-size: 0.65rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 2px; text-align: center; white-space: nowrap; overflow: hidden; }
 
-        /* Event 標籤 */
-        .event-tag { background: var(--EVENT); color: white; font-size: 0.65rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 2px; text-align: center; font-weight: bold; }
-
+        /* 顏色類別 */
         .bg-KGB200 { background: var(--KGB200); } .bg-KGB210 { background: var(--KGB210); } 
         .bg-KGB220 { background: var(--KGB220); } .bg-KGB250 { background: var(--KGB250); }
 
+        /* Modal */
         .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center; z-index:3000; }
-        .modal-content { background:white; padding:20px; border-radius:18px; width:90%; max-width:360px; }
+        .modal-content { background:white; padding:20px; border-radius:18px; width:90%; max-width:360px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .list-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+        select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; margin-top: 5px; appearance: none; background: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E') no-repeat right 12px center; background-size: 12px; }
+        .btn-primary { width: 100%; padding: 14px; background: #007bff; color: white; border: none; border-radius: 12px; font-weight: bold; margin-top: 20px; cursor: pointer; }
         [v-cloak] { display: none; }
     </style>
 </head>
@@ -40,33 +45,32 @@
     <div id="app" v-cloak>
         <div class="header">
             <h2 style="margin:0;">📅 Day-off Tracker 2026</h2>
-            <div style="margin: 10px 0;">
-                <span v-for="g in ['KGB200','KGB210','KGB220','KGB250']" :class="'badge bg-'+g">{{g}}</span>
+            <div class="legend">
+                <span class="badge bg-KGB200">KGB200</span> <span class="badge bg-KGB210">KGB210</span>
+                <span class="badge bg-KGB220">KGB220</span> <span class="badge bg-KGB250">KGB250</span>
                 <span class="badge" style="background:var(--EVENT)">Events</span>
             </div>
-            <div style="display: flex; gap: 8px;">
-                <select v-model="currentUserEmail" style="padding:10px; flex-grow:1; border-radius:8px; border:1px solid #ddd;">
+            <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
+                <label>Identify:</label>
+                <select v-model="currentUserEmail" style="margin:0; flex-grow:1;">
                     <option v-for="u in staff" :key="u.Email" :value="u.Email">{{ u.Name }} ({{ u.Group }})</option>
                 </select>
-                <button @click="fetchData" style="padding:10px; border-radius:8px; cursor:pointer; background:#eee; border:none;">Refresh</button>
+                <button @click="fetchData" style="padding:10px 15px; border-radius:8px; border:1px solid #ccc; background:white; cursor:pointer;">Refresh</button>
             </div>
         </div>
 
         <div class="calendar-grid">
             <div v-for="m in 12" :key="m" class="month-box">
-                <div style="text-align:center; font-weight:bold; margin-bottom:10px;">{{ getMonthName(m) }} 2026</div>
+                <div style="text-align:center; font-weight:bold; margin-bottom:10px; font-size:1.1rem;">{{ getMonthName(m) }} 2026</div>
                 <div class="days-grid">
-                    <div v-for="h in ['S','M','T','W','T','F','S']" style="text-align:center; font-size:0.7rem; color:#ccc;">{{h}}</div>
+                    <div v-for="h in ['S','M','T','W','T','F','S']" :key="h" style="text-align:center; font-size:0.7rem; color:#bbb;">{{h}}</div>
                     <div v-for="b in getPadding(m)" :key="'p'+b"></div>
                     <div v-for="d in getDays(m)" :key="'d'+d" class="day" :class="{'is-weekend': isWeekend(m, d)}" @click="openModal(m, d)">
                         <span class="date-num">{{ d }}</span>
                         <div v-for="e in getDayEvents(m, d)" :key="e.Title" class="event-tag">{{ e.Title }}</div>
                         <div class="dots-row">
-                            <template v-for="l in getLeaves(m, d)">
-                                <span v-if="l.Status.includes('外拍')" style="font-size:10px;">📷</span>
-                                <span v-else-if="l.Status.includes('出差')" style="font-size:10px;">💼</span>
-                                <div v-else :class="['dot', 'bg-'+l.Group, getStatusClass(l.Status)]"></div>
-                            </template>
+                            <div v-for="(l, idx) in getLeaves(m, d)" :key="idx" 
+                                 :class="['dot', 'bg-'+l.Group, getStatusClass(l.Status)]"></div>
                         </div>
                     </div>
                 </div>
@@ -75,34 +79,57 @@
 
         <div v-if="showModal" class="modal" @click.self="showModal = false">
             <div class="modal-content">
-                <h3 style="margin:0 0 15px 0;">📍 {{ getMonthName(selM) }} {{ selD }}, 2026</h3>
-                <div style="max-height:150px; overflow-y:auto; margin-bottom:15px;">
-                    <div v-for="l in getLeaves(selM, selD)" style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee;">
+                <div class="modal-header">
+                    <h3 style="margin:0;">📍 {{ getMonthName(selM) }} {{ selD }}, 2026</h3>
+                    <button @click="showModal = false" style="border:none; background:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+                </div>
+
+                <div style="max-height: 120px; overflow-y: auto; margin-bottom: 15px;">
+                    <div v-for="l in getLeaves(selM, selD)" :key="l.Name" class="list-item">
                         <span><b :style="{color:'var(--'+l.Group+')'}">{{l.Name}}</b>: {{l.Status}}</span>
                         <button v-if="canDelete(l)" @click="doDelete(l)" style="color:red; border:none; background:none; cursor:pointer;">✕</button>
                     </div>
                 </div>
-                <label style="font-size:0.8rem; color:#666;">Status:</label>
-                <select v-model="formStatus" style="width:100%; padding:12px; border-radius:8px; margin-top:5px; border:1px solid #ddd;">
-                    <option v-for="opt in ['全天休','上午休','下午休','上午外拍','下午外拍','全天外拍','出差']" :key="opt">{{opt}}</option>
-                </select>
-                <button @click="saveLeave" style="width:100%; padding:14px; background:#007bff; color:white; border:none; border-radius:10px; margin-top:20px; font-weight:bold;">Confirm</button>
+
+                <div style="margin-top:10px;">
+                    <label style="font-size:0.8rem; color:#666;">Who is logging:</label>
+                    <select v-model="formName">
+                        <option v-for="s in filteredStaff" :key="s.Name" :value="s.Name">{{ s.Name }}</option>
+                    </select>
+                </div>
+
+                <div style="margin-top:15px;">
+                    <label style="font-size:0.8rem; color:#666;">Status:</label>
+                    <select v-model="formStatus">
+                        <option v-for="opt in ['全天休','上午休','下午休','上午外拍','下午外拍','全天外拍','出差']" :key="opt">{{opt}}</option>
+                    </select>
+                </div>
+
+                <button class="btn-primary" @click="saveLeave" :disabled="loading">
+                    {{ loading ? 'Updating...' : 'Confirm' }}
+                </button>
             </div>
         </div>
     </div>
 
     <script>
         const { createApp, ref, computed, onMounted } = Vue;
+        // 請確保此處換成您最新的 GAS Web App URL
         const API = "https://script.google.com/macros/s/AKfycbyQ2pyXJZfAZVMA1SB8XJc2m3i4tdqTYJCwUa1KoGodr1tSwy_dfljN_CkGIGElA6Uo7Q/exec";
 
         createApp({
             setup() {
+                // 完整人員名單 
                 const staff = ref([{ Name: "Tony", Group: "KGB200", Role: "Admin", Email: "Tony.Pan@acer.com" },{ Name: "Esther", Group: "KGB210", Role: "Admin", Email: "Esther.Yu@acer.com" },{ Name: "Jasmin", Group: "KGB210", Role: "Member", Email: "Jasmin.Ho@acer.com" },{ Name: "Sophie", Group: "KGB210", Role: "Member", Email: "Sophie.Wu@acer.com" },{ Name: "Edna", Group: "KGB210", Role: "Member", Email: "Edna.Yang@acer.com" },{ Name: "Sandy", Group: "KGB210", Role: "Member", Email: "Sandy.Chen@acer.com" },{ Name: "Mars", Group: "KGB210", Role: "Member", Email: "Mars.Chang@acer.com" },{ Name: "Helen", Group: "KGB210", Role: "Member", Email: "Helen.Wang@acer.com" },{ Name: "Ann", Group: "KGB210", Role: "Member", Email: "Ann.Lai@acer.com" },{ Name: "Harry", Group: "KGB210", Role: "Admin", Email: "Harry.Huang@acer.com" },{ Name: "Ming", Group: "KGB210", Role: "Member", Email: "Ming.Sung@acer.com" },{ Name: "Dino", Group: "KGB210", Role: "Member", Email: "Dino.Hung@acer.com" },{ Name: "Richard", Group: "KGB210", Role: "Admin", Email: "Richard.Tseng@acer.com" },{ Name: "TsaiMing", Group: "KGB210", Role: "Member", Email: "TsaiMing.Hu@acer.com" },{ Name: "Ben", Group: "KGB220", Role: "Admin", Email: "Benjamin.Hsu@acer.com" },{ Name: "Kiwi", Group: "KGB220", Role: "Member", Email: "Kiwi.Li@acer.com" },{ Name: "Brade", Group: "KGB220", Role: "Member", Email: "Brade.Hu@acer.com" },{ Name: "Alice", Group: "KGB220", Role: "Member", Email: "Alice.Yang@acer.com" },{ Name: "Emma", Group: "KGB220", Role: "Member", Email: "Emma.Chung@acer.com" },{ Name: "Danny", Group: "KGB220", Role: "Member", Email: "Danny.Lin@acer.com" },{ Name: "Cooper", Group: "KGB220", Role: "Member", Email: "Cooper.Zhuang@acer.com" },{ Name: "Vivian", Group: "KGB250", Role: "Admin", Email: "Vivian.Chiang@acer.com" },{ Name: "Sylvia", Group: "KGB250", Role: "Member", Email: "Sylvia.Tsai@acer.com" },{ Name: "Kathryn", Group: "KGB250", Role: "Member", Email: "Kathryn.Chou@acer.com" },{ Name: "Jeff", Group: "KGB250", Role: "Member", Email: "Jeff.Liu@acer.com" }]);
+                
                 const leaves = ref([]); const events = ref([]);
                 const currentUserEmail = ref("Tony.Pan@acer.com");
-                const showModal = ref(false); const selM = ref(1); const selD = ref(1); const formStatus = ref("全天休");
+                const showModal = ref(false); const loading = ref(false);
+                const selM = ref(1); const selD = ref(1);
+                const formName = ref(""); const formStatus = ref("全天休");
 
                 const currentUser = computed(() => staff.value.find(u => u.Email === currentUserEmail.value) || staff.value[0]);
+                const filteredStaff = computed(() => currentUser.value.Role === 'Admin' ? staff.value : [currentUser.value]);
 
                 const fetchData = async () => {
                     try {
@@ -110,36 +137,42 @@
                         const data = await res.json();
                         leaves.value = data.leaves || [];
                         events.value = data.events || [];
-                    } catch (e) { console.error("API Error"); }
+                    } catch (e) { console.error("Fetch Error"); }
+                };
+
+                const openModal = (m, d) => {
+                    selM.value = m; selD.value = d;
+                    formName.value = currentUser.value.Name; // 核心：預設選取當前使用者
+                    formStatus.value = "全天休";
+                    showModal.value = true;
+                };
+
+                const saveLeave = async () => {
+                    loading.value = true;
+                    const p = staff.value.find(s => s.Name === formName.value);
+                    const payload = { action: "add", Date: `2026-${selM.value}-${selD.value}`, Name: p.Name, Group: p.Group, Status: formStatus.value };
+                    await fetch(API, { method: "POST", mode: 'no-cors', body: JSON.stringify(payload) });
+                    setTimeout(async () => { await fetchData(); showModal.value = false; loading.value = false; }, 1000);
+                };
+
+                const doDelete = async (l) => {
+                    if(!confirm("Confirm Delete?")) return;
+                    await fetch(API, { method: "POST", mode: 'no-cors', body: JSON.stringify({ action: "delete", Date: l.Date, Name: l.Name }) });
+                    setTimeout(fetchData, 1000);
                 };
 
                 onMounted(fetchData);
 
                 return {
-                    staff, leaves, events, currentUserEmail, showModal, selM, selD, formStatus,
-                    fetchData,
+                    staff, leaves, events, currentUserEmail, showModal, loading, selM, selD, formName, formStatus,
+                    filteredStaff, fetchData, openModal, saveLeave, doDelete,
                     getLeaves: (m, d) => leaves.value.filter(l => l.Date === `2026-${m}-${d}`),
                     getDayEvents: (m, d) => events.value.filter(e => e.Date === `2026-${m}-${d}`),
-                    getStatusClass: (s) => {
-                        if (s.includes("上午")) return "am-half";
-                        if (s.includes("下午")) return "pm-half";
-                        return "";
-                    },
+                    getStatusClass: (s) => s.includes("上午") ? "am-half" : s.includes("下午") ? "pm-half" : "",
                     isWeekend: (m, d) => [0, 6].includes(new Date(2026, m - 1, d).getDay()),
                     getMonthName: (m) => ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m],
                     getDays: (m) => new Date(2026, m, 0).getDate(),
                     getPadding: (m) => new Date(2026, m - 1, 1).getDay(),
-                    openModal: (m, d) => { selM.value = m; selD.value = d; formStatus.value = "全天休"; showModal.value = true; },
-                    saveLeave: async () => {
-                        const p = currentUser.value;
-                        await fetch(API, { method: "POST", mode: 'no-cors', body: JSON.stringify({ action: "add", Date: `2026-${selM.value}-${selD.value}`, Name: p.Name, Group: p.Group, Status: formStatus.value }) });
-                        setTimeout(async () => { await fetchData(); showModal.value = false; }, 1000);
-                    },
-                    doDelete: async (l) => {
-                        if(!confirm("Delete?")) return;
-                        await fetch(API, { method: "POST", mode: 'no-cors', body: JSON.stringify({ action: "delete", Date: l.Date, Name: l.Name }) });
-                        setTimeout(fetchData, 1000);
-                    },
                     canDelete: (l) => currentUser.value.Role === 'Admin' || l.Name === currentUser.value.Name
                 };
             }
