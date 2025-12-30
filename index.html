@@ -111,4 +111,103 @@
                     <div v-for="l in getLeaves(selMonth, selDay)" :key="l.Name + l.Status" class="leave-tag" :style="{'border-left-color': 'var(--'+l.Group+')'}">
                         <span>
                             <b :style="{color: 'var(--'+l.Group+')'}">{{ l.Name }}</b> 
-                            <span style="margin-left:8px;
+                            <span style="margin-left:8px; color:#555;">{{ l.Status }}</span>
+                        </span>
+                        <button v-if="canDelete(l)" style="color:#ff4d4f; border:none; background:none; font-size:1.2rem; cursor:pointer;" @click="confirmDelete(l)">✕</button>
+                    </div>
+                </div>
+
+                <label style="font-size:0.8rem; color:#666">Who is logging:</label>
+                <div class="dropdown-container">
+                    <div class="dropdown-selected" @click="isRegDropdownOpen = !isRegDropdownOpen">{{ formName }}</div>
+                    <div class="dropdown-list" v-if="isRegDropdownOpen">
+                        <div v-for="s in filteredStaff" :key="s.Name" class="dropdown-item" @click="selectRegUser(s)">{{ s.Name }}</div>
+                    </div>
+                </div>
+
+                <label style="font-size:0.8rem; color:#666; margin-top:10px; display:block;">Status:</label>
+                <div class="dropdown-container">
+                    <div class="dropdown-selected" @click="isStatusDropdownOpen = !isStatusDropdownOpen">{{ formStatus }}</div>
+                    <div class="dropdown-list" v-if="isStatusDropdownOpen">
+                        <div v-for="opt in statusOptions" :key="opt" class="dropdown-item" @click="selectStatus(opt)">{{ opt }}</div>
+                    </div>
+                </div>
+
+                <button class="btn-save" @click="saveLeave" :disabled="isSaving">{{ isSaving ? 'Saving...' : 'Confirm' }}</button>
+                <button class="btn-close" @click="showModal = false">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted } = Vue;
+        const API_URL = "https://script.google.com/macros/s/AKfycbyQ2pyXJZfAZVMA1SB8XJc2m3i4tdqTYJCwUa1KoGodr1tSwy_dfljN_CkGIGElA6Uo7Q/exec";
+
+        createApp({
+            setup() {
+                const staff = ref([{ Name: "Tony", Group: "KGB200", Role: "Admin", Email: "Tony.Pan@acer.com" },{ Name: "Esther", Group: "KGB210", Role: "Admin", Email: "Esther.Yu@acer.com" },{ Name: "Jasmin", Group: "KGB210", Role: "Member", Email: "Jasmin.Ho@acer.com" },{ Name: "Sophie", Group: "KGB210", Role: "Member", Email: "Sophie.Wu@acer.com" },{ Name: "Edna", Group: "KGB210", Role: "Member", Email: "Edna.Yang@acer.com" },{ Name: "Sandy", Group: "KGB210", Role: "Member", Email: "Sandy.Chen@acer.com" },{ Name: "Mars", Group: "KGB210", Role: "Member", Email: "Mars.Chang@acer.com" },{ Name: "Helen", Group: "KGB210", Role: "Member", Email: "Helen.Wang@acer.com" },{ Name: "Ann", Group: "KGB210", Role: "Member", Email: "Ann.Lai@acer.com" },{ Name: "Harry", Group: "KGB210", Role: "Admin", Email: "Harry.Huang@acer.com" },{ Name: "Ming", Group: "KGB210", Role: "Member", Email: "Ming.Sung@acer.com" },{ Name: "Dino", Group: "KGB210", Role: "Member", Email: "Dino.Hung@acer.com" },{ Name: "Richard", Group: "KGB210", Role: "Admin", Email: "Richard.Tseng@acer.com" },{ Name: "TsaiMing", Group: "KGB210", Role: "Member", Email: "TsaiMing.Hu@acer.com" },{ Name: "Ben", Group: "KGB220", Role: "Admin", Email: "Benjamin.Hsu@acer.com" },{ Name: "Kiwi", Group: "KGB220", Role: "Member", Email: "Kiwi.Li@acer.com" },{ Name: "Brade", Group: "KGB220", Role: "Member", Email: "Brade.Hu@acer.com" },{ Name: "Alice", Group: "KGB220", Role: "Member", Email: "Alice.Yang@acer.com" },{ Name: "Emma", Group: "KGB220", Role: "Member", Email: "Emma.Chung@acer.com" },{ Name: "Danny", Group: "KGB220", Role: "Member", Email: "Danny.Lin@acer.com" },{ Name: "Cooper", Group: "KGB220", Role: "Member", Email: "Cooper.Zhuang@acer.com" },{ Name: "Vivian", Group: "KGB250", Role: "Admin", Email: "Vivian.Chiang@acer.com" },{ Name: "Sylvia", Group: "KGB250", Role: "Member", Email: "Sylvia.Tsai@acer.com" },{ Name: "Kathryn", Group: "KGB250", Role: "Member", Email: "Kathryn.Chou@acer.com" },{ Name: "Jeff", Group: "KGB250", Role: "Member", Email: "Jeff.Liu@acer.com" }]);
+                const leaves = ref([]);
+                const currentUserEmail = ref(staff.value[0].Email);
+                const isUserDropdownOpen = ref(false);
+                const isRegDropdownOpen = ref(false);
+                const isStatusDropdownOpen = ref(false);
+                const showModal = ref(false);
+                const isSaving = ref(false);
+                const selMonth = ref(1);
+                const selDay = ref(1);
+                const formName = ref("");
+                const formStatus = ref("全天休");
+                const statusOptions = ["全天休", "上午休", "下午休", "上午外拍", "下午外拍", "全天外拍", "出差"];
+
+                const currentUser = computed(() => staff.value.find(u => u.Email === currentUserEmail.value));
+                const isAdmin = computed(() => currentUser.value?.Role === 'Admin');
+                const filteredStaff = computed(() => isAdmin.value ? staff.value : [currentUser.value]);
+
+                const fetchData = async () => {
+                    try {
+                        const res = await fetch(API_URL + "?t=" + Date.now());
+                        const data = await res.json();
+                        leaves.value = data.leaves || [];
+                    } catch (e) { console.error("Fetch error:", e); }
+                };
+
+                const saveLeave = async () => {
+                    isSaving.value = true;
+                    const p = staff.value.find(s => s.Name === formName.value);
+                    await fetch(API_URL, { 
+                        method: "POST", 
+                        mode: 'no-cors',
+                        body: JSON.stringify({ action: "add", Date: `2026-${selMonth.value}-${selDay.value}`, Name: p.Name, Group: p.Group, Status: formStatus.value }) 
+                    });
+                    setTimeout(async () => { await fetchData(); showModal.value = false; isSaving.value = false; }, 1200);
+                };
+
+                const confirmDelete = async (l) => {
+                    if(!confirm("Delete this record?")) return;
+                    await fetch(API_URL, { method: "POST", mode: 'no-cors', body: JSON.stringify({ action: "delete", Date: l.Date, Name: l.Name }) });
+                    setTimeout(fetchData, 1000);
+                };
+
+                onMounted(fetchData);
+
+                return { 
+                    staff, leaves, currentUser, isUserDropdownOpen, isRegDropdownOpen, isStatusDropdownOpen, showModal, isSaving,
+                    selMonth, selDay, formName, formStatus, statusOptions,
+                    selectUser: u => { currentUserEmail.value = u.Email; isUserDropdownOpen.value = false; },
+                    selectRegUser: s => { formName.value = s.Name; isRegDropdownOpen.value = false; },
+                    selectStatus: st => { formStatus.value = st; isStatusDropdownOpen.value = false; },
+                    getDays: m => new Date(2026, m, 0).getDate(),
+                    getPadding: m => new Date(2026, m - 1, 1).getDay(),
+                    getLeaves: (m, d) => leaves.value.filter(l => l.Date === `2026-${m}-${d}`),
+                    openModal: (m, d) => { selMonth.value = m; selDay.value = d; formName.value = currentUser.value.Name; formStatus.value = "全天休"; showModal.value = true; },
+                    saveLeave, fetchData, confirmDelete, 
+                    canDelete: l => isAdmin.value || l.Name === currentUser.value.Name,
+                    checkWeekend: (m, d) => [0, 6].includes(new Date(2026, m - 1, d).getDay()),
+                    getStatusClass: s => s?.includes("上午") ? "dot-am" : s?.includes("下午") ? "dot-pm" : "",
+                    getMonthName: m => ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m]
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
