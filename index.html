@@ -29,7 +29,6 @@
         .btn-save { background: #007bff; color: white; border: none; font-weight: bold; cursor: pointer; }
         .btn-save:disabled { background: #ccc; }
         .leave-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f8f9fa; border-radius: 8px; margin-bottom: 5px; }
-        .loading-overlay { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; display: none; }
     </style>
 </head>
 <body>
@@ -93,7 +92,9 @@
 
     <script>
         const { createApp, ref, computed, onMounted } = Vue;
-        const API_URL = "https://script.google.com/macros/library/d/1hYUI23FOE-GHQCPa_-zpEHHJ6CmhldiOJzNqv25zQhQBXPUTTLCrTaut/1"; // 請在此貼上您的 Google Apps Script URL
+        
+        // 已修正為您專屬的同步網址
+        const API_URL = "https://script.google.com/macros/s/AKfycbyIiYEYfQGpENOpaJakQT0_jn2qskRt5xYYHwCBl5Z5MKRfBN9aNjA1rUUSFTYCh373mQ/exec";
 
         createApp({
             setup() {
@@ -147,7 +148,6 @@
                     isSaving.value = true;
                     const person = staff.value.find(s => s.Name === formName.value);
                     const dateStr = `2026-${selMonth.value}-${selDay.value}`;
-                    
                     try {
                         await fetch(API_URL, {
                             method: "POST",
@@ -155,7 +155,7 @@
                         });
                         await fetchLeaves();
                         showModal.value = false;
-                    } catch (e) { alert("儲存失敗，請檢查網路"); }
+                    } catch (e) { alert("儲存失敗，請檢查權限"); }
                     isSaving.value = false;
                 };
 
@@ -163,10 +163,8 @@
                 const getPadding = (m) => new Date(2026, m - 1, 1).getDay();
                 const getLeaves = (m, d) => leaves.value.filter(l => l.Date === `2026-${m}-${d}`);
                 const openModal = (m, d) => { selMonth.value = m; selDay.value = d; formName.value = currentUser.value.Name; showModal.value = true; };
-                const canManage = (l) => isAdmin.value || l.Name === currentUser.value.Name;
 
                 onMounted(fetchLeaves);
-
                 return { staff, currentUserEmail, isAdmin, filteredStaff, showModal, selMonth, selDay, formName, getDays, getPadding, getLeaves, openModal, saveLeave, fetchLeaves, isSaving };
             }
         }).mount('#app');
