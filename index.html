@@ -6,53 +6,62 @@
     <title>Day-off Tracker 2026</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
-        :root { --KGB200: #ff6b6b; --KGB210: #4ecdc4; --KGB220: #feca57; --KGB250: #54a0ff; }
+        :root { --KGB200: #ff6b6b; --KGB210: #4ecdc4; --KGB220: #feca57; --KGB250: #54a0ff; --EVENT: #af7ac5; }
         body { font-family: -apple-system, sans-serif; background: #f4f7f9; margin: 0; padding: 10px; }
         .header { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 15px; }
-        .dropdown-selected { background: white; border: 1px solid #ddd; border-radius: 10px; padding: 10px 15px; cursor: pointer; display: flex; align-items: center; position: relative; }
-        .dropdown-selected::after { content: '▼'; position: absolute; right: 15px; font-size: 0.7rem; color: #ccc; }
-        .dropdown-list { position: absolute; top: 110%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-radius: 10px; z-index: 2000; max-height: 200px; overflow-y: auto; }
-        .dropdown-item { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid #eee; font-weight: bold; }
+        .legend { display: flex; gap: 8px; margin: 10px 0; }
+        .badge { padding: 4px 8px; border-radius: 6px; color: white; font-size: 0.75rem; font-weight: bold; }
+        .dropdown-container { position: relative; flex-grow: 1; user-select: none; }
+        .dropdown-selected { background: white; border: 1px solid #ddd; border-radius: 10px; padding: 10px 15px; cursor: pointer; display: flex; align-items: center; }
+        .dropdown-list { position: absolute; top: 110%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-radius: 10px; z-index: 2000; max-height: 200px; overflow-y: auto; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .dropdown-item { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #eee; font-weight: bold; }
         .calendar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
-        .month-box { background: white; border-radius: 12px; padding: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
-        .day { min-height: 55px; border: 1px solid #f0f0f0; border-radius: 6px; cursor: pointer; padding: 2px; }
-        .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 2px; }
-        .dot-am { clip-path: inset(0 50% 0 0); width: 12px; }
-        .dot-pm { clip-path: inset(0 0 0 50%); width: 12px; margin-left: -4px; }
-        .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:3000; }
-        .modal-content { background:white; padding:20px; border-radius:15px; width:90%; max-width:350px; }
-        .btn-save { width:100%; padding:12px; background:#007bff; color:white; border:none; border-radius:8px; font-weight:bold; margin-top:15px; }
-        .btn-cancel { width:100%; background:none; border:none; color:#999; margin-top:10px; cursor:pointer; text-decoration:underline; }
+        .month-box { background: white; border-radius: 12px; padding: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
+        .day { min-height: 60px; border: 1px solid #f0f0f0; border-radius: 8px; cursor: pointer; padding: 4px; display: flex; flex-direction: column; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin: 1px; }
+        .dot-am { clip-path: inset(0 50% 0 0); width: 15px; }
+        .dot-pm { clip-path: inset(0 0 0 50%); width: 15px; margin-left: -5px; }
+        .bg-KGB200 { background: var(--KGB200); } .bg-KGB210 { background: var(--KGB210); } 
+        .bg-KGB220 { background: var(--KGB220); } .bg-KGB250 { background: var(--KGB250); }
+        .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center; z-index:3000; }
+        .modal-content { background:white; padding:20px; border-radius:18px; width:90%; max-width:360px; }
+        .btn-save { width: 100%; padding: 12px; background: #007bff; color: white; border: none; font-weight: bold; border-radius: 10px; margin-top: 15px; }
         [v-cloak] { display: none; }
     </style>
 </head>
 <body>
     <div id="app" v-cloak>
         <div class="header">
-            <h2 style="margin:0 0 10px 0;">📅 Day-off Tracker 2026</h2>
+            <h2 style="margin:0;">📅 Day-off Tracker 2026</h2>
+            <div class="legend">
+                <span v-for="g in ['KGB200','KGB210','KGB220','KGB250']" :class="'badge bg-'+g">{{g}}</span>
+            </div>
             <div style="display: flex; align-items: center; gap: 8px;">
                 <label>Identify:</label>
-                <div style="position:relative; flex-grow:1;">
+                <div class="dropdown-container">
                     <div class="dropdown-selected" @click="isUserOpen = !isUserOpen">
-                        {{ currentUser ? currentUser.Name : 'Select...' }}
+                        <span v-if="currentUser" class="dot" :class="'bg-'+currentUser.Group" style="margin-right:8px"></span>
+                        {{ currentUser ? currentUser.Name : 'Select User' }}
                     </div>
                     <div class="dropdown-list" v-if="isUserOpen">
-                        <div v-for="u in staff" class="dropdown-item" @click="selectUser(u)">{{ u.Name }}</div>
+                        <div v-for="u in staff" class="dropdown-item" @click="selectUser(u)">
+                            <span class="dot" :class="'bg-'+u.Group" style="margin-right:8px"></span> {{ u.Name }}
+                        </div>
                     </div>
                 </div>
-                <button @click="fetchData" style="padding:10px; border-radius:8px; border:1px solid #ddd; background:white;">Refresh</button>
+                <button @click="fetchData" style="padding:10px; border-radius:10px; border:1px solid #ddd; background:white;">Refresh</button>
             </div>
         </div>
 
         <div class="calendar-grid">
             <div v-for="m in 12" class="month-box">
-                <div style="text-align:center; font-weight:bold; margin-bottom:5px;">{{ getMonthName(m) }} 2026</div>
-                <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:4px;">
+                <div style="text-align:center; font-weight:bold; margin-bottom:10px;">{{ getMonthName(m) }} 2026</div>
+                <div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:4px;">
                     <div v-for="b in getPadding(m)"></div>
-                    <div v-for="d in getDays(m)" class="day" @click="openModal(m,d)">
-                        <div style="font-size:0.7rem; color:#888;">{{d}}</div>
-                        <div style="display:flex; flex-wrap:wrap;">
-                            <div v-for="l in getLeaves(m,d)" :class="['dot', 'bg-'+l.Group, getStatusClass(l.Status)]"></div>
+                    <div v-for="d in getDays(m)" class="day" @click="openModal(m, d)">
+                        <span style="font-size:0.75rem; font-weight:bold; color:#666;">{{ d }}</span>
+                        <div style="display:flex; flex-wrap:wrap; margin-top:auto;">
+                            <div v-for="l in getLeaves(m, d)" :class="['dot', 'bg-'+l.Group, getStatusClass(l.Status)]"></div>
                         </div>
                     </div>
                 </div>
@@ -61,29 +70,29 @@
 
         <div v-if="showModal" class="modal" @click.self="showModal = false">
             <div class="modal-content">
-                <h3>📍 {{ getMonthName(selM) }} {{ selD }}, 2026</h3>
-                <div style="margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;">
-                    <div v-for="l in getLeaves(selM, selD)" style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                        <span><b>{{l.Name}}</b>: {{l.Status}}</span>
-                        <button v-if="canDelete(l)" @click="doDelete(l)" style="color:red; border:none; background:none;">✕</button>
+                <h3 style="margin-top:0">📍 {{ getMonthName(selM) }} {{ selD }}, 2026</h3>
+                <div style="max-height: 100px; overflow-y: auto; margin-bottom: 15px;">
+                    <div v-for="l in getLeaves(selM, selD)" style="display:flex; justify-content:space-between; padding:5px; border-bottom:1px solid #eee;">
+                        <span><b :style="{color:'var(--'+l.Group+')'}">{{l.Name}}</b>: {{l.Status}}</span>
+                        <button v-if="canDelete(l)" @click="doDelete(l)" style="color:red; border:none; background:none; cursor:pointer;">✕</button>
                     </div>
                 </div>
                 <label style="font-size:0.8rem;">Who is logging:</label>
-                <div style="position:relative; margin-bottom:10px;">
+                <div class="dropdown-container" style="margin-bottom:10px;">
                     <div class="dropdown-selected" @click="isRegOpen = !isRegOpen">{{ formName }}</div>
                     <div class="dropdown-list" v-if="isRegOpen">
-                        <div v-for="s in filteredStaff" class="dropdown-item" @click="formName=s.Name; isRegOpen=false;">{{s.Name}}</div>
+                        <div v-for="s in filteredStaff" class="dropdown-item" @click="formName=s.Name; isRegOpen=false;">{{ s.Name }}</div>
                     </div>
                 </div>
                 <label style="font-size:0.8rem;">Status:</label>
-                <div style="position:relative;">
+                <div class="dropdown-container">
                     <div class="dropdown-selected" @click="isStatusOpen = !isStatusOpen">{{ formStatus }}</div>
                     <div class="dropdown-list" v-if="isStatusOpen">
-                        <div v-for="opt in ['全天休','上午休','下午休','上午外拍','下午外拍','全天外拍','出差']" class="dropdown-item" @click="formStatus=opt; isStatusOpen=false;">{{opt}}</div>
+                        <div v-for="opt in ['全天休','上午休','下午休','上午外拍','下午外拍','全天外拍','出差']" class="dropdown-item" @click="formStatus=opt; isStatusOpen=false;">{{ opt }}</div>
                     </div>
                 </div>
                 <button class="btn-save" @click="saveLeave" :disabled="loading">{{ loading ? 'Saving...' : 'Confirm' }}</button>
-                <button class="btn-cancel" @click="showModal = false">Cancel</button>
+                <button @click="showModal = false" style="width:100%; background:none; border:none; color:#999; margin-top:10px; cursor:pointer;">Cancel</button>
             </div>
         </div>
     </div>
@@ -91,7 +100,7 @@
     <script>
         const { createApp, ref, computed, onMounted } = Vue;
         const API = "https://script.google.com/macros/s/AKfycbyQ2pyXJZfAZVMA1SB8XJc2m3i4tdqTYJCwUa1KoGodr1tSwy_dfljN_CkGIGElA6Uo7Q/exec";
-        
+
         createApp({
             setup() {
                 const staff = ref([{ Name: "Tony", Group: "KGB200", Role: "Admin", Email: "Tony.Pan@acer.com" },{ Name: "Esther", Group: "KGB210", Role: "Admin", Email: "Esther.Yu@acer.com" },{ Name: "Jasmin", Group: "KGB210", Role: "Member", Email: "Jasmin.Ho@acer.com" },{ Name: "Sophie", Group: "KGB210", Role: "Member", Email: "Sophie.Wu@acer.com" },{ Name: "Edna", Group: "KGB210", Role: "Member", Email: "Edna.Yang@acer.com" },{ Name: "Sandy", Group: "KGB210", Role: "Member", Email: "Sandy.Chen@acer.com" },{ Name: "Mars", Group: "KGB210", Role: "Member", Email: "Mars.Chang@acer.com" },{ Name: "Helen", Group: "KGB210", Role: "Member", Email: "Helen.Wang@acer.com" },{ Name: "Ann", Group: "KGB210", Role: "Member", Email: "Ann.Lai@acer.com" },{ Name: "Harry", Group: "KGB210", Role: "Admin", Email: "Harry.Huang@acer.com" },{ Name: "Ming", Group: "KGB210", Role: "Member", Email: "Ming.Sung@acer.com" },{ Name: "Dino", Group: "KGB210", Role: "Member", Email: "Dino.Hung@acer.com" },{ Name: "Richard", Group: "KGB210", Role: "Admin", Email: "Richard.Tseng@acer.com" },{ Name: "TsaiMing", Group: "KGB210", Role: "Member", Email: "TsaiMing.Hu@acer.com" },{ Name: "Ben", Group: "KGB220", Role: "Admin", Email: "Benjamin.Hsu@acer.com" },{ Name: "Kiwi", Group: "KGB220", Role: "Member", Email: "Kiwi.Li@acer.com" },{ Name: "Brade", Group: "KGB220", Role: "Member", Email: "Brade.Hu@acer.com" },{ Name: "Alice", Group: "KGB220", Role: "Member", Email: "Alice.Yang@acer.com" },{ Name: "Emma", Group: "KGB220", Role: "Member", Email: "Emma.Chung@acer.com" },{ Name: "Danny", Group: "KGB220", Role: "Member", Email: "Danny.Lin@acer.com" },{ Name: "Cooper", Group: "KGB220", Role: "Member", Email: "Cooper.Zhuang@acer.com" },{ Name: "Vivian", Group: "KGB250", Role: "Admin", Email: "Vivian.Chiang@acer.com" },{ Name: "Sylvia", Group: "KGB250", Role: "Member", Email: "Sylvia.Tsai@acer.com" },{ Name: "Kathryn", Group: "KGB250", Role: "Member", Email: "Kathryn.Chou@acer.com" },{ Name: "Jeff", Group: "KGB250", Role: "Member", Email: "Jeff.Liu@acer.com" }]);
@@ -108,8 +117,8 @@
 
                 const saveLeave = async () => {
                     loading.value = true;
-                    const person = staff.value.find(s => s.Name === formName.value);
-                    await fetch(API, { method: "POST", mode: 'no-cors', body: JSON.stringify({ action: "add", Date: `2026-${selM.value}-${selD.value}`, Name: person.Name, Group: person.Group, Status: formStatus.value }) });
+                    const p = staff.value.find(s => s.Name === formName.value);
+                    await fetch(API, { method: "POST", mode: 'no-cors', body: JSON.stringify({ action: "add", Date: `2026-${selM.value}-${selD.value}`, Name: p.Name, Group: p.Group, Status: formStatus.value }) });
                     setTimeout(async () => { await fetchData(); showModal.value = false; loading.value = false; }, 1200);
                 };
 
