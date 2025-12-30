@@ -10,7 +10,8 @@
         body { font-family: -apple-system, sans-serif; background: #f4f7f9; margin: 0; padding: 10px; }
         .header { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 15px; }
         .legend { display: flex; gap: 8px; margin: 10px 0; flex-wrap: wrap; }
-        .badge { padding: 4px 8px; border-radius: 6px; color: white; font-size: 0.75rem; font-weight: bold; }
+        .badge { padding: 6px 12px; border-radius: 6px; color: white; font-size: 0.8rem; font-weight: bold; cursor: pointer; border: none; transition: opacity 0.2s; }
+        .badge:hover { opacity: 0.8; }
         .calendar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px; }
         .month-box { background: white; border-radius: 12px; padding: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
         .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
@@ -18,12 +19,12 @@
         .is-weekend { background: #f9f9f9; }
         .date-num { font-size: 0.75rem; color: #888; margin-bottom: 2px; }
         
-        /* 狀態圖示邏輯 */
+        /* 狀態圖示 */
         .dots-row { display: flex; flex-wrap: wrap; gap: 3px; margin-top: auto; align-items: center; }
         .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
         .am-half { width: 5px; border-radius: 10px 0 0 10px; margin-right: 0; }
         .pm-half { width: 5px; border-radius: 0 10px 10px 0; margin-left: -1px; }
-        .status-icon { font-size: 0.9rem; line-height: 1; vertical-align: middle; }
+        .status-icon { font-size: 0.9rem; line-height: 1; }
         
         .event-tag { background: var(--EVENT); color: white; font-size: 0.65rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 2px; text-align: center; }
 
@@ -32,13 +33,11 @@
         .text-KGB200 { color: var(--KGB200); } .text-KGB210 { color: var(--KGB210); } 
         .text-KGB220 { color: var(--KGB220); } .text-KGB250 { color: var(--KGB250); }
 
-        /* Modal 視窗優化：加長高度、移除限制 */
+        /* Modal */
         .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center; z-index:3000; }
         .modal-content { background:white; padding:25px; border-radius:20px; width:90%; max-width:400px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto; }
-        .list-container { margin-bottom: 20px; } /* 不設定 max-height 與 overflow，讓它自動長高 */
-        
         select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; margin-top: 5px; font-size: 1rem; }
-        .btn-confirm { width: 100%; padding: 15px; background: #007bff; color: white; border: none; border-radius: 12px; font-weight: bold; margin-top: 20px; cursor: pointer; font-size: 1.1rem; }
+        .btn-confirm { width: 100%; padding: 15px; background: #007bff; color: white; border: none; border-radius: 12px; font-weight: bold; margin-top: 20px; cursor: pointer; }
         [v-cloak] { display: none; }
     </style>
 </head>
@@ -47,15 +46,20 @@
         <div class="header">
             <h2 style="margin:0;">📅 Day-off Tracker 2026</h2>
             <div class="legend">
-                <span v-for="g in ['KGB200','KGB210','KGB220','KGB250']" :class="['badge', 'bg-'+g]">{{g}}</span>
+                <button v-for="g in ['KGB200','KGB210','KGB220','KGB250']" 
+                        :class="['badge', 'bg-'+g]" 
+                        @click="focusGroup(g)">{{g}}</button>
                 <span class="badge" style="background:var(--EVENT)">Events</span>
             </div>
             <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
-                <span>Identify:</span>
-                <select v-model="currentUserEmail" style="flex-grow:1; margin:0;">
-                    <option v-for="u in staff" :key="u.Email" :value="u.Email" :class="'text-'+u.Group">
-                        ● {{ u.Name }} ({{ u.Group }})
-                    </option>
+                <span style="font-weight: bold;">Identify:</span>
+                <select v-model="currentUserEmail" style="flex-grow:1; margin:0;" id="userSelector">
+                    <option value="" disabled>Select your name</option>
+                    <optgroup v-for="(members, group) in groupedStaff" :label="group" :key="group">
+                        <option v-for="u in members" :key="u.Email" :value="u.Email" :class="'text-'+u.Group">
+                            ● {{ u.Name }}
+                        </option>
+                    </optgroup>
                 </select>
                 <button @click="fetchData" style="padding:10px 15px; border-radius:8px; cursor:pointer; background:#fff; border:1px solid #ddd; font-weight:bold;">Refresh</button>
             </div>
@@ -65,16 +69,16 @@
             <div v-for="m in 12" :key="m" class="month-box">
                 <div style="text-align:center; font-weight:bold; margin-bottom:12px; font-size:1.1rem;">{{ getMonthName(m) }} 2026</div>
                 <div class="days-grid">
-                    <div v-for="h in ['S','M','T','W','T','F','S']" style="text-align:center; font-size:0.75rem; color:#bbb; padding-bottom:5px;">{{h}}</div>
+                    <div v-for="h in ['S','M','T','W','T','F','S']" style="text-align:center; font-size:0.75rem; color:#bbb;">{{h}}</div>
                     <div v-for="b in getPadding(m)" :key="'p'+b"></div>
                     <div v-for="d in getDays(m)" :key="'d'+d" class="day" :class="{'is-weekend': isWeekend(m, d)}" @click="openModal(m, d)">
                         <span class="date-num">{{ d }}</span>
                         <div v-for="e in getDayEvents(m, d)" :key="e.Title" class="event-tag">{{ e.Title }}</div>
                         <div class="dots-row">
                             <template v-for="(l, idx) in getLeaves(m, d)" :key="idx">
-                                <span v-if="l.Status.includes('外拍')" class="status-icon" :title="l.Name + ': ' + l.Status">📷</span>
-                                <span v-else-if="l.Status.includes('出差')" class="status-icon" :title="l.Name + ': ' + l.Status">💼</span>
-                                <div v-else :class="['dot', 'bg-'+l.Group, getStatusClass(l.Status)]" :title="l.Name + ': ' + l.Status"></div>
+                                <span v-if="l.Status.includes('外拍')" class="status-icon" :title="l.Name">📷</span>
+                                <span v-else-if="l.Status.includes('出差')" class="status-icon" :title="l.Name">💼</span>
+                                <div v-else :class="['dot', 'bg-'+l.Group, getStatusClass(l.Status)]" :title="l.Name"></div>
                             </template>
                         </div>
                     </div>
@@ -84,45 +88,38 @@
 
         <div v-if="showModal" class="modal" @click.self="showModal = false">
             <div class="modal-content">
-                <h3 style="margin:0 0 20px 0;">📍 {{ getMonthName(selM) }} {{ selD }}, 2026</h3>
-                
-                <div class="list-container">
-                    <div v-for="l in getLeaves(selM, selD)" :key="l.Name" style="display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid #eee; align-items:center;">
-                        <span style="font-size:1.1rem;"><b :class="'text-'+l.Group">{{l.Name}}</b>: {{l.Status}}</span>
-                        <button v-if="canDelete(l)" @click="doDelete(l)" style="color:#ff6b6b; border:none; background:none; cursor:pointer; font-size:1.2rem; padding:0 10px;">✕</button>
+                <h3>📍 {{ getMonthName(selM) }} {{ selD }}, 2026</h3>
+                <div style="margin-bottom: 20px;">
+                    <div v-for="l in getLeaves(selM, selD)" :key="l.Name" style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #eee;">
+                        <span><b :class="'text-'+l.Group">{{l.Name}}</b>: {{l.Status}}</span>
+                        <button v-if="canDelete(l)" @click="doDelete(l)" style="color:#ff6b6b; border:none; background:none; cursor:pointer;">✕</button>
                     </div>
-                    <div v-if="getLeaves(selM, selD).length === 0" style="color:#aaa; text-align:center; padding:10px;">尚未有人登記</div>
                 </div>
 
-                <div style="margin-top:20px;">
-                    <label style="font-size:0.9rem; color:#666;">登記人：</label>
-                    <select v-model="formName">
-                        <option v-for="s in filteredStaff" :key="s.Name" :value="s.Name" :class="'text-'+s.Group">
-                            {{ s.Name }} ({{ s.Group }})
+                <label>Who is logging:</label>
+                <select v-model="formName">
+                    <optgroup v-for="(members, group) in groupedStaff" :label="group" :key="group">
+                        <option v-for="u in members" :key="u.Name" :value="u.Name" :class="'text-'+u.Group">
+                            {{ u.Name }}
                         </option>
-                    </select>
-                </div>
+                    </optgroup>
+                </select>
 
-                <div style="margin-top:15px;">
-                    <label style="font-size:0.9rem; color:#666;">類別：</label>
-                    <select v-model="formStatus">
-                        <option v-for="opt in ['全天休','上午休','下午休','早上外拍','下午外拍','全天外拍','出差']" :key="opt">{{opt}}</option>
-                    </select>
-                </div>
+                <label style="display:block; margin-top:15px;">Status:</label>
+                <select v-model="formStatus">
+                    <option v-for="opt in ['全天休','上午休','下午休','早上外拍','下午外拍','全天外拍','出差']" :key="opt">{{opt}}</option>
+                </select>
 
                 <button class="btn-confirm" @click="saveLeave" :disabled="loading">
-                    {{ loading ? '傳送中...' : '確認登記' }}
+                    {{ loading ? 'Updating...' : 'Confirm Registration' }}
                 </button>
-                <div style="text-align:center; margin-top:15px;">
-                    <button @click="showModal = false" style="background:none; border:none; color:#999; cursor:pointer; text-decoration:underline;">取消</button>
-                </div>
             </div>
         </div>
     </div>
 
     <script>
         const { createApp, ref, computed, onMounted } = Vue;
-        const API = "https://script.google.com/macros/s/AKfycbyQ2pyXJZfAZVMA1SB8XJc2m3i4tdqTYJCwUa1KoGodr1tSwy_dfljN_CkGIGElA6Uo7Q/exec";
+        const API = "您的 GAS 網址"; // 請換成您最新的 Web App URL
 
         createApp({
             setup() {
@@ -154,14 +151,23 @@
                     { Name: "Jeff", Group: "KGB250", Role: "Member", Email: "Jeff.Liu@acer.com" }
                 ]);
 
+                // 按 Group 分組的 Staff 
+                const groupedStaff = computed(() => {
+                    return staff.value.reduce((acc, obj) => {
+                        const key = obj.Group;
+                        if (!acc[key]) acc[key] = [];
+                        acc[key].push(obj);
+                        return acc;
+                    }, {});
+                });
+
                 const leaves = ref([]); const events = ref([]);
-                const currentUserEmail = ref("Tony.Pan@acer.com");
+                const currentUserEmail = ref(""); // 預設空字串以顯示提示詞
                 const showModal = ref(false); const loading = ref(false);
                 const selM = ref(1); const selD = ref(1);
                 const formName = ref(""); const formStatus = ref("全天休");
 
-                const currentUser = computed(() => staff.value.find(u => u.Email === currentUserEmail.value) || staff.value[0]);
-                const filteredStaff = computed(() => currentUser.value.Role === 'Admin' ? staff.value : [currentUser.value]);
+                const currentUser = computed(() => staff.value.find(u => u.Email === currentUserEmail.value) || { Role: 'Member' });
 
                 const fetchData = async () => {
                     const res = await fetch(API + "?t=" + Date.now());
@@ -170,10 +176,16 @@
                     events.value = data.events || [];
                 };
 
+                const focusGroup = (groupCode) => {
+                    // 點擊彩色群組按鈕時，自動開啟下拉選單並定位（部分瀏覽器限制開啟選單，但會自動跳轉）
+                    const el = document.getElementById('userSelector');
+                    el.focus();
+                };
+
                 const openModal = (m, d) => {
+                    if(!currentUserEmail.value) { alert("Please select your name first!"); return; }
                     selM.value = m; selD.value = d;
-                    formName.value = currentUser.value.Name;
-                    formStatus.value = "全天休";
+                    formName.value = staff.value.find(u => u.Email === currentUserEmail.value).Name;
                     showModal.value = true;
                 };
 
@@ -186,7 +198,7 @@
                 };
 
                 const doDelete = async (l) => {
-                    if(!confirm("確定要刪除這筆登記嗎？")) return;
+                    if(!confirm("確定刪除？")) return;
                     await fetch(API, { method: "POST", mode: 'no-cors', body: JSON.stringify({ action: "delete", Date: l.Date, Name: l.Name }) });
                     setTimeout(fetchData, 1000);
                 };
@@ -194,8 +206,8 @@
                 onMounted(fetchData);
 
                 return {
-                    staff, leaves, events, currentUserEmail, showModal, loading, selM, selD, formName, formStatus,
-                    filteredStaff, fetchData, openModal, saveLeave, doDelete,
+                    staff, groupedStaff, leaves, events, currentUserEmail, showModal, loading, selM, selD, formName, formStatus,
+                    fetchData, openModal, saveLeave, doDelete, focusGroup,
                     getLeaves: (m, d) => leaves.value.filter(l => l.Date === `2026-${m}-${d}`),
                     getDayEvents: (m, d) => events.value.filter(e => e.Date === `2026-${m}-${d}`),
                     getStatusClass: (s) => (s.includes("上午") || s.includes("早上")) ? "am-half" : s.includes("下午") ? "pm-half" : "",
