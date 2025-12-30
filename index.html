@@ -6,25 +6,41 @@
     <title>2026 團隊同步休假管理</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
     <style>
-        :root { --KGB200: #ff6b6b; --KGB210: #4ecdc4; --KGB220: #feca57; --KGB250: #54a0ff; }
-        body { font-family: -apple-system, system-ui, sans-serif; background: #f4f7f9; margin: 0; padding: 15px; }
-        .header { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 20px; }
-        .legend { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
-        .badge { font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; color: white; }
-        .calendar-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-        .month-box { background: white; border-radius: 15px; padding: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
-        .month-name { text-align: center; font-weight: bold; margin-bottom: 12px; font-size: 1.2rem; }
-        .days-header { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 0.8rem; color: #aaa; margin-bottom: 8px; }
-        .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
-        .day { aspect-ratio: 1; border: 1px solid #f0f0f0; border-radius: 8px; cursor: pointer; display: flex; flex-direction: column; align-items: center; padding-top: 4px; transition: 0.2s; position: relative; min-height: 50px; }
+        :root { --KGB200: #ff6b6b; --KGB210: #4ecdc4; --KGB220: #feca57; --KGB250: #54a0ff; --EVENT: #af7ac5; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: #f4f7f9; margin: 0; padding: 10px; }
+        .header { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 15px; }
+        .legend { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; font-size: 0.7rem; }
+        .badge { padding: 2px 6px; border-radius: 4px; color: white; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; }
+        .month-box { background: white; border-radius: 12px; padding: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
+        .month-name { text-align: center; font-weight: bold; margin-bottom: 8px; font-size: 1.1rem; color: #333; }
+        .days-header { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 0.75rem; color: #999; margin-bottom: 5px; }
+        .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .day { aspect-ratio: 1; border: 1px solid #f0f0f0; border-radius: 6px; cursor: pointer; display: flex; flex-direction: column; position: relative; min-height: 50px; background: #fff; }
         .day:hover { background: #f0f7ff; border-color: #007bff; }
-        .date-num { font-size: 0.85rem; font-weight: 600; }
-        .dots { display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; margin-top: 4px; width: 100%; }
-        .dot { width: 7px; height: 7px; border-radius: 50%; }
+        .date-num { font-size: 0.75rem; font-weight: 600; margin: 2px 0 0 4px; color: #666; }
+        
+        /* 重要活動標籤樣式 */
+        .event-label { font-size: 9px; color: var(--EVENT); font-weight: bold; text-align: center; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+        
+        /* 圓點容器置底 */
+        .dots { display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; margin-top: auto; padding-bottom: 3px; width: 100%; }
+        .dot { width: 6px; height: 6px; border-radius: 50%; }
+        
         .bg-KGB200 { background: var(--KGB200); } .bg-KGB210 { background: var(--KGB210); } 
         .bg-KGB220 { background: var(--KGB220); } .bg-KGB250 { background: var(--KGB250); }
+        
         .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center; z-index:100; backdrop-filter: blur(2px); }
-        .modal-content { background:white; padding:25px; border-radius:20px; width:85%; max-width:400px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
-        select, button { width:100%; padding: 12px; margin: 8px 0; border-radius: 10px; border:1px solid #ddd; font-size: 1rem; }
+        .modal-content { background:white; padding:20px; border-radius:15px; width:90%; max-width:350px; }
+        select, button { width:100%; padding: 10px; margin: 5px 0; border-radius: 8px; border:1px solid #ddd; font-size: 1rem; }
         .btn-save { background: #007bff; color: white; border: none; font-weight: bold; cursor: pointer; }
-        .btn-save:disabled { background: #ccc; }
+        .leave-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: #f8f9fa; border-radius: 8px; margin-bottom: 4px; font-size: 0.9rem; }
+        .btn-delete { background: #ffeded; color: #ff4d4f; border: 1px solid #ffccc7; width: auto; padding: 2px 6px; font-size: 0.7rem; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="header">
+            <h2 style="margin:0; font-size: 1.3rem;">📅 2026 團隊同步休假表</h2>
+            <div class="legend">
+                <span class="badge bg-KGB200">KGB200</span><span
