@@ -1,75 +1,100 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Team Calendar Pro</title>
+    <title>Team Day-off Calendar</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
         :root { --KGB200: #ff6b6b; --KGB210: #4ecdc4; --KGB220: #feca57; --KGB250: #54a0ff; --EVENT: #af7ac5; }
         body { font-family: -apple-system, sans-serif; background: #f4f7f9; margin: 0; padding: 10px; }
+        
+        /* Header & Legend */
         .header { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 15px; }
-        .legend { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; margin-bottom: 15px; }
+        .legend { display: flex; gap: 8px; margin: 10px 0; flex-wrap: wrap; }
         .badge { padding: 4px 8px; border-radius: 6px; color: white; font-size: 0.75rem; font-weight: bold; }
-        .dropdown-container { position: relative; flex-grow: 1; user-select: none; }
-        .dropdown-selected { background: white; border: 1px solid #ddd; border-radius: 10px; padding: 10px 15px; cursor: pointer; display: flex; align-items: center; font-size: 1rem; min-height: 20px; }
-        .dropdown-list { position: absolute; top: 110%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); z-index: 2000; max-height: 250px; overflow-y: auto; }
-        .dropdown-item { padding: 12px 15px; display: flex; align-items: center; cursor: pointer; border-bottom: 1px solid #f5f5f5; font-weight: bold; }
-        .arrow { margin-left: auto; font-size: 0.7rem; color: #999; }
+        
+        /* Dropdown UI */
+        .dropdown-container { position: relative; flex-grow: 1; user-select: none; margin: 5px 0; }
+        .dropdown-selected { background: white; border: 1px solid #ddd; border-radius: 10px; padding: 10px 15px; cursor: pointer; display: flex; align-items: center; font-size: 1rem; }
+        .dropdown-list { position: absolute; top: 110%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); z-index: 2000; max-height: 200px; overflow-y: auto; }
+        .dropdown-item { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #f5f5f5; font-weight: bold; display: flex; align-items: center; }
+        .dropdown-item:hover { background: #f0f7ff; }
+
+        /* Calendar Grid */
         .calendar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
         .month-box { background: white; border-radius: 12px; padding: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
         .month-name { text-align: center; font-weight: bold; margin-bottom: 10px; font-size: 1.1rem; }
+        .days-header { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 0.7rem; color: #999; }
         .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-        .day { min-height: 65px; border: 1px solid #f0f0f0; border-radius: 8px; cursor: pointer; display: flex; flex-direction: column; position: relative; background: #fff; padding: 2px; }
-        .is-weekend { background: #f9f9f9 !important; }
-        .date-num { font-size: 0.75rem; font-weight: 600; color: #666; }
-        .dots { display: flex; flex-wrap: wrap; gap: 3px; margin-top: auto; padding: 2px; }
-        .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        
+        .day { min-height: 60px; border: 1px solid #f0f0f0; border-radius: 8px; cursor: pointer; display: flex; flex-direction: column; padding: 2px; position: relative; }
+        .is-weekend { background: #f9f9f9; }
+        .date-num { font-size: 0.75rem; font-weight: bold; color: #666; }
+        
+        /* Status Dots & Icons */
+        .dots { display: flex; flex-wrap: wrap; gap: 2px; margin-top: auto; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
         .dot-am { clip-path: inset(0 50% 0 0); width: 14px; }
-        .dot-pm { clip-path: inset(0 0 0 50%); width: 14px; margin-left: -5px; }
-        .icon-small { font-size: 12px; }
-        .event-label { font-size: 0.65rem; color: white; background: var(--EVENT); border-radius: 3px; padding: 1px 3px; margin: 1px 0; text-align: center; overflow: hidden; }
+        .dot-pm { clip-path: inset(0 0 0 50%); width: 14px; margin-left: -4px; }
+        .icon-small { font-size: 12px; line-height: 1; }
+        
+        .bg-KGB200 { background: var(--KGB200); } .bg-KGB210 { background: var(--KGB210); } 
+        .bg-KGB220 { background: var(--KGB220); } .bg-KGB250 { background: var(--KGB250); }
+        .event-label { font-size: 0.6rem; color: white; background: var(--EVENT); border-radius: 3px; padding: 1px 2px; margin-top: 2px; text-align: center; white-space: nowrap; overflow: hidden; }
+
+        /* Modal Area */
         .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center; z-index:3000; }
         .modal-content { background:white; padding:20px; border-radius:18px; width:90%; max-width:360px; }
+        .leave-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #f8f9fa; border-radius: 8px; margin-bottom: 5px; font-size: 0.85rem; }
         .btn-save { width: 100%; padding: 12px; background: #007bff; color: white; border: none; font-weight: bold; border-radius: 10px; margin-top: 15px; cursor: pointer; }
         .btn-close { width: 100%; background: none; border: none; color: #999; text-decoration: underline; margin-top: 10px; cursor: pointer; }
-        .leave-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #f8f9fa; border-radius: 10px; margin-bottom: 5px; font-size: 0.9rem; }
+        
         [v-cloak] { display: none; }
     </style>
 </head>
 <body>
     <div id="app" v-cloak>
         <div class="header">
-            <h2 style="margin:0;">📅 Team Calendar</h2>
+            <h2 style="margin:0;">📅 Day-off Tracker 2026</h2>
             <div class="legend">
-                <span class="badge bg-KGB200">KGB200</span><span class="badge bg-KGB210">KGB210</span>
-                <span class="badge bg-KGB220">KGB220</span><span class="badge bg-KGB250">KGB250</span>
+                <span class="badge bg-KGB200">KGB200</span>
+                <span class="badge bg-KGB210">KGB210</span>
+                <span class="badge bg-KGB220">KGB220</span>
+                <span class="badge bg-KGB250">KGB250</span>
             </div>
+            
             <div style="display: flex; align-items: center; gap: 8px;">
+                <label>Identify:</label>
                 <div class="dropdown-container">
                     <div class="dropdown-selected" @click="isUserDropdownOpen = !isUserDropdownOpen">
-                        {{ currentUser.Name }} <span class="arrow">▼</span>
+                        <span class="dot" :class="'bg-' + currentUser.Group" style="margin-right:8px"></span>
+                        {{ currentUser.Name }} ({{ currentUser.Group }})
                     </div>
                     <div class="dropdown-list" v-if="isUserDropdownOpen">
-                        <div v-for="u in staff" :key="u.Email" class="dropdown-item" @click="selectUser(u)">{{ u.Name }}</div>
+                        <div v-for="u in staff" :key="u.Email" class="dropdown-item" @click="selectUser(u)">
+                            <span class="dot" :class="'bg-' + u.Group" style="margin-right:8px"></span>
+                            {{ u.Name }}
+                        </div>
                     </div>
                 </div>
-                <button @click="fetchData" style="padding: 10px; border-radius: 10px;">🔄</button>
+                <button @click="fetchData" style="padding: 10px; border-radius: 10px; border: 1px solid #ddd; background: white;">🔄</button>
             </div>
         </div>
 
         <div class="calendar-grid">
             <div v-for="m in 12" :key="m" class="month-box">
-                <div class="month-name">{{ m }}月 2026</div>
+                <div class="month-name">{{ getMonthName(m) }} 2026</div>
+                <div class="days-header"><div v-for="d in ['S','M','T','W','T','F','S']" :key="d">{{d}}</div></div>
                 <div class="days-grid">
-                    <div v-for="b in getPadding(m)" class="day" style="border:none;"></div>
-                    <div v-for="d in getDays(m)" class="day" :class="{'is-weekend': checkWeekend(m, d)}" @click="openModal(m, d)">
+                    <div v-for="b in getPadding(m)" :key="'p'+b" class="day" style="border:none; background:transparent"></div>
+                    <div v-for="d in getDays(m)" :key="'d'+d" class="day" :class="{'is-weekend': checkWeekend(m, d)}" @click="openModal(m, d)">
                         <span class="date-num">{{ d }}</span>
                         <div v-if="specialEvents[m+'-'+d]" class="event-label">{{ specialEvents[m+'-'+d] }}</div>
                         <div class="dots">
-                            <template v-for="(l, idx) in getLeaves(m, d)">
-                                <span v-if="l.Status && l.Status.includes('外拍')" class="icon-small">📷</span>
-                                <span v-else-if="l.Status === '出差'" class="icon-small">💼</span>
+                            <template v-for="(l, idx) in getLeaves(m, d)" :key="idx">
+                                <span v-if="l.Status && l.Status.includes('Outdoor')" class="icon-small">📷</span>
+                                <span v-else-if="l.Status === 'Business Trip'" class="icon-small">💼</span>
                                 <div v-else :class="['dot', 'bg-' + l.Group, getStatusClass(l.Status)]"></div>
                             </template>
                         </div>
@@ -80,37 +105,37 @@
 
         <div v-if="showModal" class="modal" @click.self="showModal = false">
             <div class="modal-content">
-                <h3 style="margin-top:0">📍 2026 / {{ selMonth }} / {{ selDay }}</h3>
+                <h3 style="margin-top:0">📍 Jan {{ selDay }}, 2026</h3>
                 
-                <div style="max-height: 100px; overflow-y: auto; margin-bottom:10px;">
-                    <div v-for="l in getLeaves(selMonth, selDay)" class="leave-item">
-                        <span><b>{{ l.Name }}</b> <small>({{ l.Status }})</small></span>
-                        <button v-if="canDelete(l)" style="color:red; border:none; background:none;" @click="confirmDelete(l)">✕</button>
+                <div style="max-height: 100px; overflow-y: auto; margin-bottom:15px;">
+                    <div v-for="l in getLeaves(selMonth, selDay)" :key="l.Name" class="leave-item">
+                        <span :style="{color: 'var(--'+l.Group+')'}"><b>{{ l.Name }}</b>: {{ l.Status }}</span>
+                        <button v-if="canDelete(l)" style="color:red; border:none; background:none; font-size:1.2rem;" @click="confirmDelete(l)">✕</button>
                     </div>
                 </div>
 
-                <label style="font-size:0.8rem; color:#666">登記人員：</label>
-                <div class="dropdown-container" style="margin-bottom:10px">
+                <label style="font-size:0.8rem; color:#666">Who is logging:</label>
+                <div class="dropdown-container">
                     <div class="dropdown-selected" @click="isRegDropdownOpen = !isRegDropdownOpen">
-                        {{ formName }} <span class="arrow">▼</span>
+                        {{ formName }} <span style="margin-left:auto">▼</span>
                     </div>
                     <div class="dropdown-list" v-if="isRegDropdownOpen">
-                        <div v-for="s in filteredStaff" class="dropdown-item" @click="selectRegUser(s)">{{ s.Name }}</div>
+                        <div v-for="s in filteredStaff" :key="s.Name" class="dropdown-item" @click="selectRegUser(s)">{{ s.Name }}</div>
                     </div>
                 </div>
 
-                <label style="font-size:0.8rem; color:#666">休假類別：</label>
+                <label style="font-size:0.8rem; color:#666; margin-top:10px; display:block;">Status:</label>
                 <div class="dropdown-container">
                     <div class="dropdown-selected" @click="isStatusDropdownOpen = !isStatusDropdownOpen">
-                        {{ formStatus }} <span class="arrow">▼</span>
+                        {{ formStatus }} <span style="margin-left:auto">▼</span>
                     </div>
                     <div class="dropdown-list" v-if="isStatusDropdownOpen">
-                        <div v-for="opt in statusOptions" class="dropdown-item" @click="selectStatus(opt)">{{ opt }}</div>
+                        <div v-for="opt in statusOptions" :key="opt" class="dropdown-item" @click="selectStatus(opt)">{{ opt }}</div>
                     </div>
                 </div>
 
-                <button class="btn-save" @click="saveLeave" :disabled="isSaving">{{ isSaving ? '儲存中...' : '確認登記' }}</button>
-                <button class="btn-close" @click="showModal = false">關閉</button>
+                <button class="btn-save" @click="saveLeave" :disabled="isSaving">{{ isSaving ? 'Saving...' : 'Confirm' }}</button>
+                <button class="btn-close" @click="showModal = false">Cancel</button>
             </div>
         </div>
     </div>
@@ -152,18 +177,18 @@
                 const leaves = ref([]); const specialEvents = ref({});
                 const currentUserEmail = ref(staff.value[0].Email);
                 const isUserDropdownOpen = ref(false); 
-                const isRegDropdownOpen = ref(false); // 彈窗內人員選單狀態
+                const isRegDropdownOpen = ref(false);
                 const isStatusDropdownOpen = ref(false);
                 const showModal = ref(false); const isSaving = ref(false);
                 const selMonth = ref(0); const selDay = ref(0); 
-                const formName = ref(""); // 登記表單中的名字
-                const formStatus = ref("全天休");
-                const statusOptions = ["全天休", "上午休", "下午休", "上午外拍", "下午外拍", "全天外拍", "出差"];
+                const formName = ref(""); const formStatus = ref("Full Day");
+                const statusOptions = ["Full Day", "AM Off", "PM Off", "AM Outdoor", "PM Outdoor", "Full Outdoor", "Business Trip"];
 
                 const currentUser = computed(() => staff.value.find(u => u.Email === currentUserEmail.value) || staff.value[0]);
                 const isAdmin = computed(() => currentUser.value?.Role === 'Admin');
                 const filteredStaff = computed(() => isAdmin.value ? staff.value : [currentUser.value]);
 
+                const getMonthName = (m) => ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m];
                 const selectUser = (u) => { currentUserEmail.value = u.Email; isUserDropdownOpen.value = false; };
                 const selectRegUser = (s) => { formName.value = s.Name; isRegDropdownOpen.value = false; };
                 const selectStatus = (st) => { formStatus.value = st; isStatusDropdownOpen.value = false; };
@@ -181,4 +206,45 @@
                     isSaving.value = true;
                     const person = staff.value.find(s => s.Name === formName.value);
                     try {
-                        await fetch(
+                        await fetch(API_URL, { 
+                            method: "POST", 
+                            body: JSON.stringify({ 
+                                action: "add", 
+                                Date: `2026-${selMonth.value}-${selDay.value}`, 
+                                Name: person.Name, 
+                                Group: person.Group,
+                                Status: formStatus.value 
+                            }) 
+                        });
+                        setTimeout(async () => { await fetchData(); showModal.value = false; isSaving.value = false; }, 800);
+                    } catch (e) { isSaving.value = false; }
+                };
+
+                const confirmDelete = async (l) => {
+                    if(!confirm("Delete this record?")) return;
+                    try {
+                        await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "delete", Date: l.Date, Name: l.Name }) });
+                        await fetchData();
+                    } catch (e) { console.error(e); }
+                };
+
+                const getDays = (m) => new Date(2026, m, 0).getDate();
+                const getPadding = (m) => new Date(2026, m - 1, 1).getDay();
+                const getLeaves = (m, d) => leaves.value.filter(l => l.Date === `2026-${m}-${d}`);
+                const checkWeekend = (m, d) => { const day = new Date(2026, m - 1, d).getDay(); return day === 0 || day === 6; };
+                const getStatusClass = (s) => (s === "AM Off" || s === "AM Outdoor") ? "dot-am" : (s === "PM Off" || s === "PM Outdoor" ? "dot-pm" : "");
+                
+                const openModal = (m, d) => { 
+                    selMonth.value = m; selDay.value = d; 
+                    formName.value = currentUser.value.Name; 
+                    formStatus.value = "Full Day";
+                    showModal.value = true; 
+                };
+
+                onMounted(fetchData);
+                return { staff, currentUser, isUserDropdownOpen, isRegDropdownOpen, isStatusDropdownOpen, selectUser, selectRegUser, selectStatus, isAdmin, filteredStaff, showModal, selMonth, selDay, formName, formStatus, statusOptions, getDays, getPadding, getLeaves, openModal, saveLeave, fetchData, isSaving, canDelete: (l) => isAdmin.value || l.Name === currentUser.value.Name, confirmDelete, specialEvents, checkWeekend, getStatusClass, getMonthName };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
