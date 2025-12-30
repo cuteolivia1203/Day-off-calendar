@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Team Day-off Calendar</title>
+    <title>Team Day-off Tracker</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
         :root { --KGB200: #ff6b6b; --KGB210: #4ecdc4; --KGB220: #feca57; --KGB250: #54a0ff; --EVENT: #af7ac5; }
@@ -17,7 +17,7 @@
         /* Dropdown UI */
         .dropdown-container { position: relative; flex-grow: 1; user-select: none; margin: 5px 0; }
         .dropdown-selected { background: white; border: 1px solid #ddd; border-radius: 10px; padding: 10px 15px; cursor: pointer; display: flex; align-items: center; font-size: 1rem; }
-        .dropdown-list { position: absolute; top: 110%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); z-index: 2000; max-height: 200px; overflow-y: auto; }
+        .dropdown-list { position: absolute; top: 110%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); z-index: 2000; max-height: 250px; overflow-y: auto; }
         .dropdown-item { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #f5f5f5; font-weight: bold; display: flex; align-items: center; }
         .dropdown-item:hover { background: #f0f7ff; }
 
@@ -35,8 +35,8 @@
         /* Status Dots & Icons */
         .dots { display: flex; flex-wrap: wrap; gap: 2px; margin-top: auto; }
         .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-        .dot-am { clip-path: inset(0 50% 0 0); width: 14px; }
-        .dot-pm { clip-path: inset(0 0 0 50%); width: 14px; margin-left: -4px; }
+        .dot-am { clip-path: inset(0 50% 0 0); width: 14px; } /* 左半圓 */
+        .dot-pm { clip-path: inset(0 0 0 50%); width: 14px; margin-left: -4px; } /* 右半圓 */
         .icon-small { font-size: 12px; line-height: 1; }
         
         .bg-KGB200 { background: var(--KGB200); } .bg-KGB210 { background: var(--KGB210); } 
@@ -93,8 +93,8 @@
                         <div v-if="specialEvents[m+'-'+d]" class="event-label">{{ specialEvents[m+'-'+d] }}</div>
                         <div class="dots">
                             <template v-for="(l, idx) in getLeaves(m, d)" :key="idx">
-                                <span v-if="l.Status && l.Status.includes('Outdoor')" class="icon-small">📷</span>
-                                <span v-else-if="l.Status === 'Business Trip'" class="icon-small">💼</span>
+                                <span v-if="l.Status && l.Status.includes('外拍')" class="icon-small">📷</span>
+                                <span v-else-if="l.Status === '出差'" class="icon-small">💼</span>
                                 <div v-else :class="['dot', 'bg-' + l.Group, getStatusClass(l.Status)]"></div>
                             </template>
                         </div>
@@ -105,10 +105,10 @@
 
         <div v-if="showModal" class="modal" @click.self="showModal = false">
             <div class="modal-content">
-                <h3 style="margin-top:0">📍 Jan {{ selDay }}, 2026</h3>
+                <h3 style="margin-top:0">📍 {{ getMonthName(selMonth) }} {{ selDay }}, 2026</h3>
                 
                 <div style="max-height: 100px; overflow-y: auto; margin-bottom:15px;">
-                    <div v-for="l in getLeaves(selMonth, selDay)" :key="l.Name" class="leave-item">
+                    <div v-for="l in getLeaves(selMonth, selDay)" :key="l.Name + l.Status" class="leave-item">
                         <span :style="{color: 'var(--'+l.Group+')'}"><b>{{ l.Name }}</b>: {{ l.Status }}</span>
                         <button v-if="canDelete(l)" style="color:red; border:none; background:none; font-size:1.2rem;" @click="confirmDelete(l)">✕</button>
                     </div>
@@ -176,13 +176,11 @@
 
                 const leaves = ref([]); const specialEvents = ref({});
                 const currentUserEmail = ref(staff.value[0].Email);
-                const isUserDropdownOpen = ref(false); 
-                const isRegDropdownOpen = ref(false);
-                const isStatusDropdownOpen = ref(false);
+                const isUserDropdownOpen = ref(false); const isRegDropdownOpen = ref(false); const isStatusDropdownOpen = ref(false);
                 const showModal = ref(false); const isSaving = ref(false);
                 const selMonth = ref(0); const selDay = ref(0); 
-                const formName = ref(""); const formStatus = ref("Full Day");
-                const statusOptions = ["Full Day", "AM Off", "PM Off", "AM Outdoor", "PM Outdoor", "Full Outdoor", "Business Trip"];
+                const formName = ref(""); const formStatus = ref("休假");
+                const statusOptions = ["休假", "早上休", "下午休", "早上外拍", "下午外拍", "外拍", "出差"];
 
                 const currentUser = computed(() => staff.value.find(u => u.Email === currentUserEmail.value) || staff.value[0]);
                 const isAdmin = computed(() => currentUser.value?.Role === 'Admin');
@@ -209,11 +207,8 @@
                         await fetch(API_URL, { 
                             method: "POST", 
                             body: JSON.stringify({ 
-                                action: "add", 
-                                Date: `2026-${selMonth.value}-${selDay.value}`, 
-                                Name: person.Name, 
-                                Group: person.Group,
-                                Status: formStatus.value 
+                                action: "add", Date: `2026-${selMonth.value}-${selDay.value}`, 
+                                Name: person.Name, Group: person.Group, Status: formStatus.value 
                             }) 
                         });
                         setTimeout(async () => { await fetchData(); showModal.value = false; isSaving.value = false; }, 800);
@@ -228,21 +223,28 @@
                     } catch (e) { console.error(e); }
                 };
 
-                const getDays = (m) => new Date(2026, m, 0).getDate();
-                const getPadding = (m) => new Date(2026, m - 1, 1).getDay();
-                const getLeaves = (m, d) => leaves.value.filter(l => l.Date === `2026-${m}-${d}`);
-                const checkWeekend = (m, d) => { const day = new Date(2026, m - 1, d).getDay(); return day === 0 || day === 6; };
-                const getStatusClass = (s) => (s === "AM Off" || s === "AM Outdoor") ? "dot-am" : (s === "PM Off" || s === "PM Outdoor" ? "dot-pm" : "");
-                
+                const getStatusClass = (s) => {
+                    if (s === "早上休" || s === "早上外拍") return "dot-am";
+                    if (s === "下午休" || s === "下午外拍") return "dot-pm";
+                    return "";
+                };
+
                 const openModal = (m, d) => { 
                     selMonth.value = m; selDay.value = d; 
-                    formName.value = currentUser.value.Name; 
-                    formStatus.value = "Full Day";
+                    formName.value = currentUser.value.Name; formStatus.value = "休假";
                     showModal.value = true; 
                 };
 
                 onMounted(fetchData);
-                return { staff, currentUser, isUserDropdownOpen, isRegDropdownOpen, isStatusDropdownOpen, selectUser, selectRegUser, selectStatus, isAdmin, filteredStaff, showModal, selMonth, selDay, formName, formStatus, statusOptions, getDays, getPadding, getLeaves, openModal, saveLeave, fetchData, isSaving, canDelete: (l) => isAdmin.value || l.Name === currentUser.value.Name, confirmDelete, specialEvents, checkWeekend, getStatusClass, getMonthName };
+                return { 
+                    staff, currentUser, isUserDropdownOpen, isRegDropdownOpen, isStatusDropdownOpen, 
+                    selectUser, selectRegUser, selectStatus, isAdmin, filteredStaff, showModal, 
+                    selMonth, selDay, formName, formStatus, statusOptions, getDays: (m) => new Date(2026, m, 0).getDate(),
+                    getPadding: (m) => new Date(2026, m - 1, 1).getDay(), getLeaves: (m, d) => leaves.value.filter(l => l.Date === `2026-${m}-${d}`),
+                    openModal, saveLeave, fetchData, isSaving, canDelete: (l) => isAdmin.value || l.Name === currentUser.value.Name,
+                    confirmDelete, specialEvents, checkWeekend: (m, d) => { const day = new Date(2026, m - 1, d).getDay(); return day === 0 || day === 6; },
+                    getStatusClass, getMonthName 
+                };
             }
         }).mount('#app');
     </script>
