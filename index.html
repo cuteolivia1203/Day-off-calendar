@@ -9,59 +9,58 @@
         :root { --KGB200: #ff6b6b; --KGB210: #4ecdc4; --KGB220: #feca57; --KGB250: #54a0ff; --EVENT: #af7ac5; }
         body { font-family: -apple-system, sans-serif; background: #f4f7f9; margin: 0; padding: 10px; }
         .header { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 15px; }
-        .legend { display: flex; gap: 8px; margin: 10px 0; flex-wrap: wrap; }
-        .badge { padding: 6px 12px; border-radius: 6px; color: white; font-size: 0.8rem; font-weight: bold; cursor: pointer; border: none; transition: opacity 0.2s; }
-        .badge:hover { opacity: 0.8; }
+        
+        /* 四欄選單樣式 */
+        .selector-label { font-weight: bold; font-size: 0.95rem; margin-bottom: 10px; display: block; color: #333; }
+        .group-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+        .group-item { display: flex; flex-direction: column; }
+        .group-tag { font-size: 0.75rem; font-weight: bold; margin-bottom: 4px; padding-left: 2px; }
+        select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.9rem; background: #fff; cursor: pointer; }
+        
         .calendar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px; }
         .month-box { background: white; border-radius: 12px; padding: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
         .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
         .day { min-height: 95px; border: 1px solid #f0f0f0; border-radius: 8px; cursor: pointer; padding: 4px; display: flex; flex-direction: column; position: relative; }
         .is-weekend { background: #f9f9f9; }
-        .date-num { font-size: 0.75rem; color: #888; margin-bottom: 2px; }
+        .date-num { font-size: 0.75rem; color: #888; }
         
-        /* 狀態圖示 */
         .dots-row { display: flex; flex-wrap: wrap; gap: 3px; margin-top: auto; align-items: center; }
         .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
         .am-half { width: 5px; border-radius: 10px 0 0 10px; margin-right: 0; }
         .pm-half { width: 5px; border-radius: 0 10px 10px 0; margin-left: -1px; }
-        .status-icon { font-size: 0.9rem; line-height: 1; }
-        
+        .status-icon { font-size: 0.95rem; line-height: 1; }
         .event-tag { background: var(--EVENT); color: white; font-size: 0.65rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 2px; text-align: center; }
 
-        .bg-KGB200 { background: var(--KGB200); } .bg-KGB210 { background: var(--KGB210); } 
-        .bg-KGB220 { background: var(--KGB220); } .bg-KGB250 { background: var(--KGB250); }
         .text-KGB200 { color: var(--KGB200); } .text-KGB210 { color: var(--KGB210); } 
         .text-KGB220 { color: var(--KGB220); } .text-KGB250 { color: var(--KGB250); }
+        .bg-KGB200 { background: var(--KGB200); } .bg-KGB210 { background: var(--KGB210); } 
 
-        /* Modal */
+        /* Modal 視窗優化：自動長高 */
         .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center; z-index:3000; }
-        .modal-content { background:white; padding:25px; border-radius:20px; width:90%; max-width:400px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto; }
-        select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; margin-top: 5px; font-size: 1rem; }
-        .btn-confirm { width: 100%; padding: 15px; background: #007bff; color: white; border: none; border-radius: 12px; font-weight: bold; margin-top: 20px; cursor: pointer; }
+        .modal-content { background:white; padding:25px; border-radius:20px; width:90%; max-width:420px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto; }
+        .leave-list { margin-bottom: 20px; border-bottom: 1px solid #eee; }
+        .leave-item { display:flex; justify-content:space-between; padding:12px 0; border-top: 1px solid #f8f8f8; align-items:center; }
+        .btn-confirm { width: 100%; padding: 15px; background: #007bff; color: white; border: none; border-radius: 12px; font-weight: bold; margin-top: 20px; cursor: pointer; font-size: 1.1rem; }
         [v-cloak] { display: none; }
     </style>
 </head>
 <body>
     <div id="app" v-cloak>
         <div class="header">
-            <h2 style="margin:0;">📅 Day-off Tracker 2026</h2>
-            <div class="legend">
-                <button v-for="g in ['KGB200','KGB210','KGB220','KGB250']" 
-                        :class="['badge', 'bg-'+g]" 
-                        @click="focusGroup(g)">{{g}}</button>
-                <span class="badge" style="background:var(--EVENT)">Events</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2 style="margin:0;">📅 Day-off Tracker 2026</h2>
+                <button @click="fetchData" style="padding:8px 15px; border-radius:8px; cursor:pointer; background:#fff; border:1px solid #ddd; font-weight:bold;">Refresh</button>
             </div>
-            <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
-                <span style="font-weight: bold;">Identify:</span>
-                <select v-model="currentUserEmail" style="flex-grow:1; margin:0;" id="userSelector">
-                    <option value="" disabled>Select your name</option>
-                    <optgroup v-for="(members, group) in groupedStaff" :label="group" :key="group">
-                        <option v-for="u in members" :key="u.Email" :value="u.Email" :class="'text-'+u.Group">
-                            ● {{ u.Name }}
-                        </option>
-                    </optgroup>
-                </select>
-                <button @click="fetchData" style="padding:10px 15px; border-radius:8px; cursor:pointer; background:#fff; border:1px solid #ddd; font-weight:bold;">Refresh</button>
+            
+            <span class="selector-label">Select Your Name:</span>
+            <div class="group-row">
+                <div v-for="g in ['KGB200','KGB210','KGB220','KGB250']" :key="g" class="group-item">
+                    <span :class="'text-'+g" class="group-tag">{{g}}</span>
+                    <select v-model="currentUserEmail">
+                        <option value="">-- Select --</option>
+                        <option v-for="u in staff.filter(s => s.Group === g)" :key="u.Email" :value="u.Email">{{ u.Name }}</option>
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -69,15 +68,15 @@
             <div v-for="m in 12" :key="m" class="month-box">
                 <div style="text-align:center; font-weight:bold; margin-bottom:12px; font-size:1.1rem;">{{ getMonthName(m) }} 2026</div>
                 <div class="days-grid">
-                    <div v-for="h in ['S','M','T','W','T','F','S']" style="text-align:center; font-size:0.75rem; color:#bbb;">{{h}}</div>
+                    <div v-for="h in ['S','M','T','W','T','F','S']" style="text-align:center; font-size:0.75rem; color:#bbb; padding-bottom:5px;">{{h}}</div>
                     <div v-for="b in getPadding(m)" :key="'p'+b"></div>
                     <div v-for="d in getDays(m)" :key="'d'+d" class="day" :class="{'is-weekend': isWeekend(m, d)}" @click="openModal(m, d)">
                         <span class="date-num">{{ d }}</span>
                         <div v-for="e in getDayEvents(m, d)" :key="e.Title" class="event-tag">{{ e.Title }}</div>
                         <div class="dots-row">
                             <template v-for="(l, idx) in getLeaves(m, d)" :key="idx">
-                                <span v-if="l.Status.includes('外拍')" class="status-icon" :title="l.Name">📷</span>
-                                <span v-else-if="l.Status.includes('出差')" class="status-icon" :title="l.Name">💼</span>
+                                <span v-if="l.Status && l.Status.includes('外拍')" class="status-icon" :title="l.Name">📷</span>
+                                <span v-else-if="l.Status && l.Status.includes('出差')" class="status-icon" :title="l.Name">💼</span>
                                 <div v-else :class="['dot', 'bg-'+l.Group, getStatusClass(l.Status)]" :title="l.Name"></div>
                             </template>
                         </div>
@@ -88,38 +87,36 @@
 
         <div v-if="showModal" class="modal" @click.self="showModal = false">
             <div class="modal-content">
-                <h3>📍 {{ getMonthName(selM) }} {{ selD }}, 2026</h3>
-                <div style="margin-bottom: 20px;">
-                    <div v-for="l in getLeaves(selM, selD)" :key="l.Name" style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #eee;">
-                        <span><b :class="'text-'+l.Group">{{l.Name}}</b>: {{l.Status}}</span>
-                        <button v-if="canDelete(l)" @click="doDelete(l)" style="color:#ff6b6b; border:none; background:none; cursor:pointer;">✕</button>
+                <h3 style="margin-top:0;">📍 {{ getMonthName(selM) }} {{ selD }}, 2026</h3>
+                
+                <div class="leave-list">
+                    <div v-for="l in getLeaves(selM, selD)" :key="l.Name" class="leave-item">
+                        <span style="font-size:1.05rem;"><b :class="'text-'+l.Group">{{l.Name}}</b>: {{l.Status}}</span>
+                        <button v-if="canDelete(l)" @click="doDelete(l)" style="color:#ff6b6b; border:none; background:none; cursor:pointer; font-size:1.2rem; padding:0 10px;">✕</button>
                     </div>
+                    <div v-if="getLeaves(selM, selD).length === 0" style="color:#999; text-align:center; padding:20px;">目前無人登記</div>
                 </div>
 
-                <label>Who is logging:</label>
-                <select v-model="formName">
-                    <optgroup v-for="(members, group) in groupedStaff" :label="group" :key="group">
-                        <option v-for="u in members" :key="u.Name" :value="u.Name" :class="'text-'+u.Group">
-                            {{ u.Name }}
-                        </option>
-                    </optgroup>
-                </select>
-
-                <label style="display:block; margin-top:15px;">Status:</label>
-                <select v-model="formStatus">
-                    <option v-for="opt in ['全天休','上午休','下午休','早上外拍','下午外拍','全天外拍','出差']" :key="opt">{{opt}}</option>
-                </select>
-
-                <button class="btn-confirm" @click="saveLeave" :disabled="loading">
-                    {{ loading ? 'Updating...' : 'Confirm Registration' }}
-                </button>
+                <div v-if="currentUserEmail">
+                    <p style="margin: 0 0 15px 0; font-size: 1rem;">Logging as: <b :class="'text-'+currentUser.Group">{{ currentUser.Name }}</b></p>
+                    <label style="font-size:0.9rem; color:#666;">Status:</label>
+                    <select v-model="formStatus">
+                        <option v-for="opt in ['全天休','上午休','下午休','早上外拍','下午外拍','全天外拍','出差']" :key="opt">{{opt}}</option>
+                    </select>
+                    <button class="btn-confirm" @click="saveLeave" :disabled="loading">
+                        {{ loading ? 'Updating...' : 'Confirm Registration' }}
+                    </button>
+                </div>
+                <div v-else style="text-align:center; color:#ff6b6b; padding:15px; border:1px dashed #ff6b6b; border-radius:12px; background:#fff5f5;">
+                    ⚠️ 請先在頁面頂端選擇您的名字
+                </div>
             </div>
         </div>
     </div>
 
     <script>
         const { createApp, ref, computed, onMounted } = Vue;
-        const API = "您的 GAS 網址"; // 請換成您最新的 Web App URL
+        const API = "https://script.google.com/macros/s/AKfycbyQ2pyXJZfAZVMA1SB8XJc2m3i4tdqTYJCwUa1KoGodr1tSwy_dfljN_CkGIGElA6Uo7Q/exec";
 
         createApp({
             setup() {
@@ -151,23 +148,13 @@
                     { Name: "Jeff", Group: "KGB250", Role: "Member", Email: "Jeff.Liu@acer.com" }
                 ]);
 
-                // 按 Group 分組的 Staff 
-                const groupedStaff = computed(() => {
-                    return staff.value.reduce((acc, obj) => {
-                        const key = obj.Group;
-                        if (!acc[key]) acc[key] = [];
-                        acc[key].push(obj);
-                        return acc;
-                    }, {});
-                });
-
                 const leaves = ref([]); const events = ref([]);
-                const currentUserEmail = ref(""); // 預設空字串以顯示提示詞
+                const currentUserEmail = ref(""); 
                 const showModal = ref(false); const loading = ref(false);
                 const selM = ref(1); const selD = ref(1);
-                const formName = ref(""); const formStatus = ref("全天休");
+                const formStatus = ref("全天休");
 
-                const currentUser = computed(() => staff.value.find(u => u.Email === currentUserEmail.value) || { Role: 'Member' });
+                const currentUser = computed(() => staff.value.find(u => u.Email === currentUserEmail.value) || {});
 
                 const fetchData = async () => {
                     const res = await fetch(API + "?t=" + Date.now());
@@ -176,29 +163,22 @@
                     events.value = data.events || [];
                 };
 
-                const focusGroup = (groupCode) => {
-                    // 點擊彩色群組按鈕時，自動開啟下拉選單並定位（部分瀏覽器限制開啟選單，但會自動跳轉）
-                    const el = document.getElementById('userSelector');
-                    el.focus();
-                };
-
                 const openModal = (m, d) => {
-                    if(!currentUserEmail.value) { alert("Please select your name first!"); return; }
                     selM.value = m; selD.value = d;
-                    formName.value = staff.value.find(u => u.Email === currentUserEmail.value).Name;
+                    formStatus.value = "全天休";
                     showModal.value = true;
                 };
 
                 const saveLeave = async () => {
+                    if(!currentUserEmail.value) return;
                     loading.value = true;
-                    const p = staff.value.find(s => s.Name === formName.value);
-                    const payload = { action: "add", Date: `2026-${selM.value}-${selD.value}`, Name: p.Name, Group: p.Group, Status: formStatus.value };
+                    const payload = { action: "add", Date: `2026-${selM.value}-${selD.value}`, Name: currentUser.value.Name, Group: currentUser.value.Group, Status: formStatus.value };
                     await fetch(API, { method: "POST", mode: 'no-cors', body: JSON.stringify(payload) });
                     setTimeout(async () => { await fetchData(); showModal.value = false; loading.value = false; }, 1200);
                 };
 
                 const doDelete = async (l) => {
-                    if(!confirm("確定刪除？")) return;
+                    if(!confirm("確定刪除此登記？")) return;
                     await fetch(API, { method: "POST", mode: 'no-cors', body: JSON.stringify({ action: "delete", Date: l.Date, Name: l.Name }) });
                     setTimeout(fetchData, 1000);
                 };
@@ -206,11 +186,11 @@
                 onMounted(fetchData);
 
                 return {
-                    staff, groupedStaff, leaves, events, currentUserEmail, showModal, loading, selM, selD, formName, formStatus,
-                    fetchData, openModal, saveLeave, doDelete, focusGroup,
+                    staff, leaves, events, currentUserEmail, currentUser, showModal, loading, selM, selD, formStatus,
+                    fetchData, openModal, saveLeave, doDelete,
                     getLeaves: (m, d) => leaves.value.filter(l => l.Date === `2026-${m}-${d}`),
                     getDayEvents: (m, d) => events.value.filter(e => e.Date === `2026-${m}-${d}`),
-                    getStatusClass: (s) => (s.includes("上午") || s.includes("早上")) ? "am-half" : s.includes("下午") ? "pm-half" : "",
+                    getStatusClass: (s) => (s && (s.includes("上午") || s.includes("早上"))) ? "am-half" : (s && s.includes("下午")) ? "pm-half" : "",
                     isWeekend: (m, d) => [0, 6].includes(new Date(2026, m - 1, d).getDay()),
                     getMonthName: (m) => ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m],
                     getDays: (m) => new Date(2026, m, 0).getDate(),
