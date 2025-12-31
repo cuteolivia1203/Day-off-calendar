@@ -8,8 +8,16 @@
     <style>
         :root { --KGB200: #ff6b6b; --KGB210: #4ecdc4; --KGB220: #feca57; --KGB250: #54a0ff; --EVENT: #af7ac5; }
         body { font-family: -apple-system, sans-serif; background: #f4f7f9; margin: 0; padding: 10px; }
-        .header { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
         
+        .header { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 15px; }
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        
+        /* 搜尋框樣式 */
+        .search-container { position: relative; width: 100%; max-width: 400px; margin: 0 auto; }
+        .search-input { width: 100%; padding: 12px 15px; border-radius: 10px; border: 2px solid #eee; font-size: 1rem; transition: border-color 0.3s; outline: none; box-sizing: border-box; }
+        .search-input:focus { border-color: var(--KGB250); }
+        .search-label { font-size: 0.85rem; color: #666; font-weight: bold; margin-bottom: 6px; display: block; text-align: center; }
+
         /* 日曆樣式 */
         .calendar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px; }
         .month-box { background: white; border-radius: 12px; padding: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
@@ -24,18 +32,17 @@
         .status-icon { font-size: 0.95rem; line-height: 1; }
         .event-tag { background: var(--EVENT); color: white; font-size: 0.65rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 2px; text-align: center; }
 
-        /* 文字與背景顏色 */
+        /* 顏色定義 */
         .text-KGB200 { color: var(--KGB200); font-weight: bold; } .text-KGB210 { color: var(--KGB210); font-weight: bold; } 
         .text-KGB220 { color: var(--KGB220); font-weight: bold; } .text-KGB250 { color: var(--KGB250); font-weight: bold; }
         .bg-KGB200 { background: var(--KGB200); } .bg-KGB210 { background: var(--KGB210); } 
         .bg-KGB220 { background: var(--KGB220); } .bg-KGB250 { background: var(--KGB250); }
 
-        /* 彈出視窗樣式 */
+        /* 彈出視窗 */
         .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center; z-index:3000; }
         .modal-content { background:white; padding:25px; border-radius:20px; width:90%; max-width:450px; max-height: 90vh; overflow-y: auto; text-align: center; }
         .leave-item { display:flex; justify-content:space-between; padding:12px 0; border-bottom: 1px solid #f0f0f0; align-items:center; text-align: left; }
         
-        /* 四組下拉選單色塊樣式 */
         .selector-section { margin-top: 25px; border-top: 1px solid #eee; padding-top: 20px; }
         .group-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
         .group-select-box { text-align: left; }
@@ -56,8 +63,16 @@
 <body>
     <div id="app" v-cloak>
         <div class="header">
-            <h2 style="margin:0;">📅 Day-off Tracker 2026</h2>
-            <button @click="fetchData" style="padding:8px 15px; border-radius:8px; cursor:pointer; background:#fff; border:1px solid #ddd; font-weight:bold;">Refresh</button>
+            <div class="header-top">
+                <h2 style="margin:0;">📅 Day-off Tracker 2026</h2>
+                <button @click="fetchData" style="padding:8px 15px; border-radius:8px; cursor:pointer; background:#fff; border:1px solid #ddd; font-weight:bold;">Refresh</button>
+            </div>
+            
+            <div class="search-container">
+                <label class="search-label">🔍 Search Colleague's Name:</label>
+                <input type="text" v-model="searchQuery" class="search-input" placeholder="e.g. Tony">
+                <p v-if="searchQuery" style="font-size: 0.7rem; color: #999; margin: 5px 0 0 0; text-align: center;">Showing leaves only for: <b>{{ searchQuery }}</b></p>
+            </div>
         </div>
 
         <div class="calendar-grid">
@@ -70,7 +85,7 @@
                         <span class="date-num">{{ d }}</span>
                         <div v-for="e in getDayEvents(m, d)" :key="e.Title" class="event-tag">{{ e.Title }}</div>
                         <div class="dots-row">
-                            <template v-for="(l, idx) in getLeaves(m, d)" :key="idx">
+                            <template v-for="(l, idx) in filteredLeaves(m, d)" :key="idx">
                                 <span v-if="l.Status && l.Status.includes('外拍')" class="status-icon" :title="l.Name">📷</span>
                                 <span v-else-if="l.Status && l.Status.includes('出差')" class="status-icon" :title="l.Name">💼</span>
                                 <div v-else :class="['dot', 'bg-'+l.Group, getStatusClass(l.Status)]" :title="l.Name"></div>
@@ -89,11 +104,11 @@
                 </div>
                 
                 <div style="margin-top: 15px;">
-                    <div v-for="l in getLeaves(selM, selD)" :key="l.Name" class="leave-item">
+                    <div v-for="l in getAllLeavesAtDate(selM, selD)" :key="l.Name" class="leave-item">
                         <span><b :class="'text-'+l.Group">{{l.Name}}</b>: {{l.Status}}</span>
                         <button v-if="canDelete(l)" @click="doDelete(l)" style="color:#ff6b6b; border:none; background:none; cursor:pointer;">✕</button>
                     </div>
-                    <div v-if="getLeaves(selM, selD).length === 0" style="color:#999; padding:15px;">目前無人登記</div>
+                    <div v-if="getAllLeavesAtDate(selM, selD).length === 0" style="color:#999; padding:15px;">目前無人登記</div>
                 </div>
 
                 <div class="selector-section">
@@ -101,7 +116,7 @@
                     <div class="group-grid">
                         <div v-for="g in ['KGB200','KGB210','KGB220','KGB250']" :key="g" class="group-select-box">
                             <span :class="'text-'+g" class="group-label">{{g}}</span>
-                            <select v-model="currentUserEmail" :class="'sel-'+g" @change="onUserSelect">
+                            <select v-model="currentUserEmail" :class="'sel-'+g">
                                 <option value="">-- Select --</option>
                                 <option v-for="u in staff.filter(s => s.Group === g)" :key="u.Email" :value="u.Email">{{ u.Name }}</option>
                             </select>
@@ -128,35 +143,9 @@
 
         createApp({
             setup() {
-                const staff = ref([
-                    { Name: "Tony", Group: "KGB200", Role: "Admin", Email: "Tony.Pan@acer.com" },
-                    { Name: "Esther", Group: "KGB210", Role: "Admin", Email: "Esther.Yu@acer.com" },
-                    { Name: "Jasmin", Group: "KGB210", Role: "Member", Email: "Jasmin.Ho@acer.com" },
-                    { Name: "Sophie", Group: "KGB210", Role: "Member", Email: "Sophie.Wu@acer.com" },
-                    { Name: "Edna", Group: "KGB210", Role: "Member", Email: "Edna.Yang@acer.com" },
-                    { Name: "Sandy", Group: "KGB210", Role: "Member", Email: "Sandy.Chen@acer.com" },
-                    { Name: "Mars", Group: "KGB210", Role: "Member", Email: "Mars.Chang@acer.com" },
-                    { Name: "Helen", Group: "KGB210", Role: "Member", Email: "Helen.Wang@acer.com" },
-                    { Name: "Ann", Group: "KGB210", Role: "Member", Email: "Ann.Lai@acer.com" },
-                    { Name: "Harry", Group: "KGB210", Role: "Admin", Email: "Harry.Huang@acer.com" },
-                    { Name: "Ming", Group: "KGB210", Role: "Member", Email: "Ming.Sung@acer.com" },
-                    { Name: "Dino", Group: "KGB210", Role: "Member", Email: "Dino.Hung@acer.com" },
-                    { Name: "Richard", Group: "KGB210", Role: "Admin", Email: "Richard.Tseng@acer.com" },
-                    { Name: "TsaiMing", Group: "KGB210", Role: "Member", Email: "TsaiMing.Hu@acer.com" },
-                    { Name: "Ben", Group: "KGB220", Role: "Admin", Email: "Benjamin.Hsu@acer.com" },
-                    { Name: "Kiwi", Group: "KGB220", Role: "Member", Email: "Kiwi.Li@acer.com" },
-                    { Name: "Brade", Group: "KGB220", Role: "Member", Email: "Brade.Hu@acer.com" },
-                    { Name: "Alice", Group: "KGB220", Role: "Member", Email: "Alice.Yang@acer.com" },
-                    { Name: "Emma", Group: "KGB220", Role: "Member", Email: "Emma.Chung@acer.com" },
-                    { Name: "Danny", Group: "KGB220", Role: "Member", Email: "Danny.Lin@acer.com" },
-                    { Name: "Cooper", Group: "KGB220", Role: "Member", Email: "Cooper.Zhuang@acer.com" },
-                    { Name: "Vivian", Group: "KGB250", Role: "Admin", Email: "Vivian.Chiang@acer.com" },
-                    { Name: "Sylvia", Group: "KGB250", Role: "Member", Email: "Sylvia.Tsai@acer.com" },
-                    { Name: "Kathryn", Group: "KGB250", Role: "Member", Email: "Kathryn.Chou@acer.com" },
-                    { Name: "Jeff", Group: "KGB250", Role: "Member", Email: "Jeff.Liu@acer.com" }
-                ]);
-
+                const staff = ref([{Name:"Tony",Group:"KGB200",Role:"Admin",Email:"Tony.Pan@acer.com"},{Name:"Esther",Group:"KGB210",Role:"Admin",Email:"Esther.Yu@acer.com"},{Name:"Jasmin",Group:"KGB210",Role:"Member",Email:"Jasmin.Ho@acer.com"},{Name:"Sophie",Group:"KGB210",Role:"Member",Email:"Sophie.Wu@acer.com"},{Name:"Edna",Group:"KGB210",Role:"Member",Email:"Edna.Yang@acer.com"},{Name:"Sandy",Group:"KGB210",Role:"Member",Email:"Sandy.Chen@acer.com"},{Name:"Mars",Group:"KGB210",Role:"Member",Email:"Mars.Chang@acer.com"},{Name:"Helen",Group:"KGB210",Role:"Member",Email:"Helen.Wang@acer.com"},{Name:"Ann",Group:"KGB210",Role:"Member",Email:"Ann.Lai@acer.com"},{Name:"Harry",Group:"KGB210",Role:"Admin",Email:"Harry.Huang@acer.com"},{Name:"Ming",Group:"KGB210",Role:"Member",Email:"Ming.Sung@acer.com"},{Name:"Dino",Group:"KGB210",Role:"Member",Email:"Dino.Hung@acer.com"},{Name:"Richard",Group:"KGB210",Role:"Admin",Email:"Richard.Tseng@acer.com"},{Name:"TsaiMing",Group:"KGB210",Role:"Member",Email:"TsaiMing.Hu@acer.com"},{Name:"Ben",Group:"KGB220",Role:"Admin",Email:"Benjamin.Hsu@acer.com"},{Name:"Kiwi",Group:"KGB220",Role:"Member",Email:"Kiwi.Li@acer.com"},{Name:"Brade",Group:"KGB220",Role:"Member",Email:"Brade.Hu@acer.com"},{Name:"Alice",Group:"KGB220",Role:"Member",Email:"Alice.Yang@acer.com"},{Name:"Emma",Group:"KGB220",Role:"Member",Email:"Emma.Chung@acer.com"},{Name:"Danny",Group:"KGB220",Role:"Member",Email:"Danny.Lin@acer.com"},{Name:"Cooper",Group:"KGB220",Role:"Member",Email:"Cooper.Zhuang@acer.com"},{Name:"Vivian",Group:"KGB250",Role:"Admin",Email:"Vivian.Chiang@acer.com"},{Name:"Sylvia",Group:"KGB250",Role:"Member",Email:"Sylvia.Tsai@acer.com"},{Name:"Kathryn",Group:"KGB250",Role:"Member",Email:"Kathryn.Chou@acer.com"},{Name:"Jeff",Group:"KGB250",Role:"Member",Email:"Jeff.Liu@acer.com"}]);
                 const leaves = ref([]); const events = ref([]);
+                const searchQuery = ref(""); // 搜尋關鍵字
                 const currentUserEmail = ref(""); const showModal = ref(false); const loading = ref(false);
                 const selM = ref(1); const selD = ref(1); const formStatus = ref("全天休");
 
@@ -169,39 +158,42 @@
                     events.value = data.events || [];
                 };
 
-                const openModal = (m, d) => {
-                    selM.value = m; selD.value = d;
-                    currentUserEmail.value = ""; // 每次打開重新選擇身分
-                    showModal.value = true;
+                // 日曆點點過濾邏輯：日期匹配 + 姓名搜尋匹配
+                const filteredLeaves = (m, d) => {
+                    return leaves.value.filter(l => {
+                        const lDate = new Date(l.Date);
+                        const dateMatch = lDate.getFullYear() === 2026 && (lDate.getMonth()+1) === m && lDate.getDate() === d;
+                        const searchMatch = !searchQuery.value || l.Name.toLowerCase().includes(searchQuery.value.toLowerCase());
+                        return dateMatch && searchMatch;
+                    });
                 };
 
-                const closeModal = () => { showModal.value = false; };
-
-                const onUserSelect = () => { /* 可以在此增加自動聚焦或滾動邏輯 */ };
-
-                const saveLeave = async () => {
-                    if(!currentUserEmail.value) return;
-                    loading.value = true;
-                    const payload = { action: "add", Date: `2026-${selM.value}-${selD.value}`, Name: currentUser.value.Name, Group: currentUser.value.Group, Status: formStatus.value };
-                    await fetch(API, { method: "POST", mode: 'no-cors', body: JSON.stringify(payload) });
-                    setTimeout(async () => { await fetchData(); closeModal(); loading.value = false; }, 1200);
-                };
-
-                const doDelete = async (l) => {
-                    if(!confirm("Delete?")) return;
-                    await fetch(API, { method: "POST", mode: 'no-cors', body: JSON.stringify({ action: "delete", Date: l.Date, Name: l.Name }) });
-                    setTimeout(fetchData, 1000);
+                // 彈出視窗內顯示該日期「所有人」的休假（不受搜尋框影響，方便管理）
+                const getAllLeavesAtDate = (m, d) => {
+                    return leaves.value.filter(l => {
+                        const lDate = new Date(l.Date);
+                        return lDate.getFullYear() === 2026 && (lDate.getMonth()+1) === m && lDate.getDate() === d;
+                    });
                 };
 
                 onMounted(fetchData);
 
                 return {
-                    staff, leaves, events, currentUserEmail, currentUser, showModal, loading, selM, selD, formStatus,
-                    fetchData, openModal, closeModal, onUserSelect, saveLeave, doDelete,
-                    getLeaves: (m, d) => leaves.value.filter(l => {
-                        const lDate = new Date(l.Date);
-                        return lDate.getFullYear() === 2026 && (lDate.getMonth()+1) === m && lDate.getDate() === d;
-                    }),
+                    staff, leaves, events, searchQuery, currentUserEmail, currentUser, showModal, loading, selM, selD, formStatus,
+                    fetchData, filteredLeaves, getAllLeavesAtDate,
+                    openModal: (m, d) => { selM.value = m; selD.value = d; currentUserEmail.value = ""; showModal.value = true; },
+                    closeModal: () => { showModal.value = false; },
+                    saveLeave: async () => {
+                        loading.value = true;
+                        const payload = { action: "add", Date: `2026-${selM.value}-${selD.value}`, Name: currentUser.value.Name, Group: currentUser.value.Group, Status: formStatus.value };
+                        await fetch(API, { method: "POST", mode: 'no-cors', body: JSON.stringify(payload) });
+                        setTimeout(async () => { await fetchData(); showModal.value = false; loading.value = false; }, 1200);
+                    },
+                    doDelete: async (l) => {
+                        if(!confirm("Delete?")) return;
+                        await fetch(API, { method: "POST", mode: 'no-cors', body: JSON.stringify({ action: "delete", Date: l.Date, Name: l.Name }) });
+                        setTimeout(fetchData, 1000);
+                    },
                     getDayEvents: (m, d) => events.value.filter(e => {
                         const eDate = new Date(e.Date);
                         return (eDate.getMonth()+1) === m && eDate.getDate() === d;
