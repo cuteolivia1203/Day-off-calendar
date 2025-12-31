@@ -8,50 +8,46 @@
     <style>
         :root { --KGB200: #ff6b6b; --KGB210: #4ecdc4; --KGB220: #feca57; --KGB250: #54a0ff; --EVENT: #af7ac5; }
         body { font-family: -apple-system, sans-serif; background: #f4f7f9; margin: 0; padding: 10px; }
-        
         .header { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 15px; }
         .header-main { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
         
-        /* 分組過濾按鈕樣式 */
+        /* 分組過濾按鈕 */
         .filter-group { display: flex; gap: 8px; flex-wrap: wrap; }
         .filter-btn { padding: 6px 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; font-size: 0.8rem; transition: all 0.2s; opacity: 0.6; }
         .filter-btn.active { opacity: 1; transform: translateY(-2px); box-shadow: 0 3px 6px rgba(0,0,0,0.15); }
         .btn-all { background: #eee; color: #666; }
         
-        /* 搜尋與重新整理 */
+        /* 搜尋框與複合式 Enter 按鈕 */
         .controls-right { display: flex; gap: 10px; align-items: center; }
-        .search-container { position: relative; width: 220px; }
-        .search-input { width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.85rem; outline: none; }
-        .search-input:focus { border-color: var(--KGB250); }
+        .search-wrapper { display: flex; align-items: center; background: white; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; width: 250px; transition: border-color 0.3s; }
+        .search-wrapper:focus-within { border-color: var(--KGB250); box-shadow: 0 0 0 2px rgba(84, 160, 255, 0.2); }
+        .search-input { border: none; padding: 8px 12px; outline: none; width: 100%; font-size: 0.85rem; }
+        .enter-icon-btn { background: #f8f9fa; border: none; border-left: 1px solid #ddd; padding: 8px 10px; cursor: pointer; color: #999; font-size: 0.8rem; display: flex; align-items: center; transition: background 0.2; }
+        .enter-icon-btn:hover { background: #e9ecef; color: #666; }
 
-        /* 日曆結構 */
+        /* 日曆樣式 */
         .calendar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px; }
         .month-box { background: white; border-radius: 12px; padding: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
         .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
         .day { min-height: 95px; border: 1px solid #f0f0f0; border-radius: 8px; cursor: pointer; padding: 4px; display: flex; flex-direction: column; position: relative; }
         .is-weekend { background: #f9f9f9; }
         .date-num { font-size: 0.75rem; color: #888; }
-        
-        /* 狀態點點 */
         .dots-row { display: flex; flex-wrap: wrap; gap: 3px; margin-top: auto; align-items: center; min-height: 12px; }
         .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
         .am-half { width: 5px; border-radius: 10px 0 0 10px; }
         .pm-half { width: 5px; border-radius: 0 10px 10px 0; margin-left: -1px; }
-        .status-icon { font-size: 0.95rem; line-height: 1; }
+        .status-icon { font-size: 0.95rem; }
         .event-tag { background: var(--EVENT); color: white; font-size: 0.65rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 2px; text-align: center; }
 
-        /* 顏色定義 */
         .text-KGB200 { color: var(--KGB200); font-weight: bold; } .text-KGB210 { color: var(--KGB210); font-weight: bold; } 
         .text-KGB220 { color: var(--KGB220); font-weight: bold; } .text-KGB250 { color: var(--KGB250); font-weight: bold; }
         .bg-KGB200 { background: var(--KGB200); color: white; } .bg-KGB210 { background: var(--KGB210); color: white; } 
         .bg-KGB220 { background: var(--KGB220); color: white; } .bg-KGB250 { background: var(--KGB250); color: white; }
 
-        /* Modal */
         .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center; z-index:3000; }
         .modal-content { background:white; padding:25px; border-radius:20px; width:90%; max-width:450px; max-height: 90vh; overflow-y: auto; }
         .leave-item { display:flex; justify-content:space-between; padding:10px 0; border-bottom: 1px solid #f0f0f0; align-items:center; }
         .btn-confirm { width: 100%; padding: 15px; background: #007bff; color: white; border: none; border-radius: 12px; font-weight: bold; margin-top: 20px; cursor: pointer; }
-
         [v-cloak] { display: none; }
     </style>
 </head>
@@ -62,7 +58,7 @@
                 <h2 style="margin:0;">📅 Day-off Tracker 2026</h2>
                 
                 <div class="filter-group">
-                    <button class="filter-btn btn-all" :class="{active: activeGroup === ''}" @click="activeGroup = ''">Show All</button>
+                    <button class="filter-btn btn-all" :class="{active: activeGroup === ''}" @click="activeGroup = ''">All</button>
                     <button v-for="g in ['KGB200','KGB210','KGB220','KGB250']" 
                             :key="g" 
                             :class="['filter-btn', 'bg-'+g, {active: activeGroup === g}]"
@@ -70,8 +66,15 @@
                 </div>
 
                 <div class="controls-right">
-                    <div class="search-container">
-                        <input type="text" v-model="searchQuery" class="search-input" placeholder="Search Colleague's Name" @keyup.enter="handleEnter">
+                    <div class="search-wrapper">
+                        <input type="text" 
+                               v-model="searchQuery" 
+                               class="search-input" 
+                               placeholder="Search Colleague's Name" 
+                               @keyup.enter="handleSearch">
+                        <button class="enter-icon-btn" @click="handleSearch" title="Press Enter to search">
+                            ⏎
+                        </button>
                     </div>
                     <button @click="fetchData" style="padding:8px 15px; border-radius:8px; cursor:pointer; background:#fff; border:1px solid #ddd; font-weight:bold;">Refresh</button>
                 </div>
@@ -105,14 +108,12 @@
                     <h3 style="margin:0;">📍 {{ getMonthName(selM) }} {{ selD }}, 2026</h3>
                     <button @click="showModal = false" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
                 </div>
-                
                 <div style="margin-top: 15px;">
                     <div v-for="l in getAllLeavesAtDate(selM, selD)" :key="l.Name" class="leave-item">
                         <span><b :class="'text-'+l.Group">{{l.Name}}</b>: {{l.Status}}</span>
                         <button v-if="canDelete(l)" @click="doDelete(l)" style="color:#ff6b6b; border:none; background:none; cursor:pointer;">✕</button>
                     </div>
                 </div>
-
                 <div style="margin-top: 25px; border-top: 1px solid #eee; padding-top: 20px; text-align: center;">
                     <span style="font-weight: bold;">Select Your Name:</span>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; text-align: left;">
@@ -124,7 +125,6 @@
                             </select>
                         </div>
                     </div>
-
                     <div v-if="currentUserEmail" style="margin-top: 20px; text-align: left;">
                         <label style="font-size: 0.9rem; font-weight: bold; color: #666;">Status:</label>
                         <select v-model="formStatus" style="width: 100%; padding: 10px; border-radius: 8px; margin-top: 5px;">
@@ -145,8 +145,7 @@
             setup() {
                 const staff = ref([{Name:"Tony",Group:"KGB200",Role:"Admin",Email:"Tony.Pan@acer.com"},{Name:"Esther",Group:"KGB210",Role:"Admin",Email:"Esther.Yu@acer.com"},{Name:"Jasmin",Group:"KGB210",Role:"Member",Email:"Jasmin.Ho@acer.com"},{Name:"Sophie",Group:"KGB210",Role:"Member",Email:"Sophie.Wu@acer.com"},{Name:"Edna",Group:"KGB210",Role:"Member",Email:"Edna.Yang@acer.com"},{Name:"Sandy",Group:"KGB210",Role:"Member",Email:"Sandy.Chen@acer.com"},{Name:"Mars",Group:"KGB210",Role:"Member",Email:"Mars.Chang@acer.com"},{Name:"Helen",Group:"KGB210",Role:"Member",Email:"Helen.Wang@acer.com"},{Name:"Ann",Group:"KGB210",Role:"Member",Email:"Ann.Lai@acer.com"},{Name:"Harry",Group:"KGB210",Role:"Admin",Email:"Harry.Huang@acer.com"},{Name:"Ming",Group:"KGB210",Role:"Member",Email:"Ming.Sung@acer.com"},{Name:"Dino",Group:"KGB210",Role:"Member",Email:"Dino.Hung@acer.com"},{Name:"Richard",Group:"KGB210",Role:"Admin",Email:"Richard.Tseng@acer.com"},{Name:"TsaiMing",Group:"KGB210",Role:"Member",Email:"TsaiMing.Hu@acer.com"},{Name:"Ben",Group:"KGB220",Role:"Admin",Email:"Benjamin.Hsu@acer.com"},{Name:"Kiwi",Group:"KGB220",Role:"Member",Email:"Kiwi.Li@acer.com"},{Name:"Brade",Group:"KGB220",Role:"Member",Email:"Brade.Hu@acer.com"},{Name:"Alice",Group:"KGB220",Role:"Member",Email:"Alice.Yang@acer.com"},{Name:"Emma",Group:"KGB220",Role:"Member",Email:"Emma.Chung@acer.com"},{Name:"Danny",Group:"KGB220",Role:"Member",Email:"Danny.Lin@acer.com"},{Name:"Cooper",Group:"KGB220",Role:"Member",Email:"Cooper.Zhuang@acer.com"},{Name:"Vivian",Group:"KGB250",Role:"Admin",Email:"Vivian.Chiang@acer.com"},{Name:"Sylvia",Group:"KGB250",Role:"Member",Email:"Sylvia.Tsai@acer.com"},{Name:"Kathryn",Group:"KGB250",Role:"Member",Email:"Kathryn.Chou@acer.com"},{Name:"Jeff",Group:"KGB250",Role:"Member",Email:"Jeff.Liu@acer.com"}]);
                 const leaves = ref([]); const events = ref([]);
-                const searchQuery = ref("");
-                const activeGroup = ref(""); // 當前選中的組別
+                const searchQuery = ref(""); const activeGroup = ref("");
                 const currentUserEmail = ref(""); const showModal = ref(false); const loading = ref(false);
                 const selM = ref(1); const selD = ref(1); const formStatus = ref("全天休");
 
@@ -157,22 +156,19 @@
                     events.value = data.events || [];
                 };
 
-                const filteredLeaves = (m, d) => {
-                    return leaves.value.filter(l => {
+                onMounted(fetchData);
+
+                return {
+                    staff, leaves, events, searchQuery, activeGroup, currentUserEmail, showModal, loading, selM, selD, formStatus,
+                    fetchData,
+                    handleSearch: () => { document.activeElement.blur(); }, // 統一收起鍵盤/失去焦點
+                    filteredLeaves: (m, d) => leaves.value.filter(l => {
                         const lDate = new Date(l.Date);
                         const dateMatch = lDate.getFullYear() === 2026 && (lDate.getMonth()+1) === m && lDate.getDate() === d;
                         const groupMatch = !activeGroup.value || l.Group === activeGroup.value;
                         const searchMatch = !searchQuery.value || l.Name.toLowerCase().includes(searchQuery.value.toLowerCase());
                         return dateMatch && groupMatch && searchMatch;
-                    });
-                };
-
-                onMounted(fetchData);
-
-                return {
-                    staff, leaves, events, searchQuery, activeGroup, currentUserEmail, showModal, loading, selM, selD, formStatus,
-                    fetchData, filteredLeaves,
-                    handleEnter: (e) => { e.target.blur(); }, // Enter 後失去焦點
+                    }),
                     openModal: (m, d) => { selM.value = m; selD.value = d; currentUserEmail.value = ""; showModal.value = true; },
                     getAllLeavesAtDate: (m, d) => leaves.value.filter(l => {
                         const lDate = new Date(l.Date);
