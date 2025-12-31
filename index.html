@@ -3,24 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Day-off Tracker 2026</title>
+    <title>Day-off Tracker 2026 (Fix Events)</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
         :root { --KGB200: #ff6b6b; --KGB210: #4ecdc4; --KGB220: #feca57; --KGB250: #54a0ff; --EVENT: #af7ac5; }
         body { font-family: -apple-system, "Microsoft JhengHei", sans-serif; background: #f4f7f9; margin: 0; padding: 10px; }
-        
         .header { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 15px; position: sticky; top: 0; z-index: 1000; }
         .header-main { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        
+        /* 搜尋框與圖示補回 */
+        .search-wrapper { display: flex; align-items: center; background: white; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; width: 250px; }
+        .search-input { border: none; padding: 10px; outline: none; width: 100%; font-size: 0.9rem; }
+        .search-btn { background: #eee; border: none; padding: 8px 12px; cursor: pointer; color: #666; font-size: 0.8rem; border-left: 1px solid #ddd; }
         
         .filter-group { display: flex; gap: 8px; flex-wrap: wrap; }
         .filter-btn { padding: 6px 14px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; font-size: 0.85rem; color: white; }
         .filter-btn.inactive { opacity: 0.3; }
         .btn-all { background: #666; }
 
-        .search-wrapper { display: flex; align-items: center; background: white; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; width: 220px; }
-        .search-input { border: none; padding: 10px; outline: none; width: 100%; font-size: 0.9rem; }
-        
-        /* 響應式日曆佈局 */
         .calendar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; width: 100%; }
         .month-box { background: white; border-radius: 15px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
@@ -29,6 +29,7 @@
         .date-num { font-size: 0.8rem; color: #999; margin-bottom: 2px; }
         
         .name-tag { font-size: 0.75rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 2px; text-align: center; color: white; font-weight: 500; }
+        /* 紫色事件標籤 */
         .event-tag { background: var(--EVENT); color: white; font-size: 0.7rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 4px; text-align: center; font-weight: bold; }
 
         .bg-KGB200 { background-color: var(--KGB200); } .bg-KGB210 { background-color: var(--KGB210); }
@@ -36,20 +37,17 @@
         .text-KGB200 { color: var(--KGB200); } .text-KGB210 { color: var(--KGB210); }
         .text-KGB220 { color: var(--KGB220); } .text-KGB250 { color: var(--KGB250); }
 
-        /* Modal 彈窗：移除高度限制 */
         .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center; z-index:3000; padding: 20px; }
         .modal-content { background:white; padding:25px; border-radius:20px; width:100%; max-width:550px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-        .leave-item { display:flex; justify-content:space-between; padding:8px 0; border-bottom: 1px solid #eee; }
+        .leave-item { display:flex; justify-content:space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
         
-        /* 四組下拉選單帶色 */
+        /* 下拉選單顏色 */
         .staff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
-        .staff-select-box { display: flex; flex-direction: column; }
         .sel-KGB200 { background: #ffebeb; border: 1px solid var(--KGB200); }
         .sel-KGB210 { background: #e6f7f6; border: 1px solid var(--KGB210); }
         .sel-KGB220 { background: #fff9e6; border: 1px solid var(--KGB220); }
         .sel-KGB250 { background: #eef5ff; border: 1px solid var(--KGB250); }
-        
-        select { padding: 10px; border-radius: 8px; font-size: 0.9rem; outline: none; }
+        select { padding: 10px; border-radius: 8px; font-size: 0.9rem; outline: none; width: 100%; }
         .btn-confirm { width: 100%; padding: 15px; background: #007bff; color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 20px; }
         [v-cloak] { display: none; }
     </style>
@@ -63,11 +61,16 @@
                     <button class="filter-btn btn-all" :class="{inactive: activeGroup !== ''}" @click="activeGroup = ''">All</button>
                     <button v-for="g in ['KGB200','KGB210','KGB220','KGB250']" :key="g" :class="['filter-btn', 'bg-'+g, {inactive: activeGroup !== '' && activeGroup !== g}]" @click="activeGroup = g">{{ g }}</button>
                 </div>
-                <div class="search-wrapper"><input type="text" v-model="searchQuery" class="search-input" placeholder="Search Name..."></div>
+                <div class="search-wrapper">
+                    <input type="text" v-model="searchQuery" class="search-input" placeholder="Search Name...">
+                    <button class="search-btn" @click="fetchData">Refresh ↻</button>
+                </div>
             </div>
         </div>
 
-        <div class="calendar-grid">
+        <div v-if="loadingData" style="text-align:center; padding: 50px; color:#666;">Loading Data...</div>
+
+        <div v-else class="calendar-grid">
             <div v-for="m in 12" :key="m" class="month-box">
                 <div style="text-align:center; font-weight:bold; margin-bottom:15px;">{{ getMonthName(m) }} 2026</div>
                 <div class="days-grid">
@@ -88,14 +91,12 @@
                     <h3 style="margin:0;">📍 {{ getMonthName(selM) }} {{ selD }}, 2026</h3>
                     <button @click="showModal = false" style="background:none; border:none; font-size:1.8rem; cursor:pointer;">&times;</button>
                 </div>
-
                 <div style="margin-bottom: 20px;">
                     <div v-for="l in getAllLeavesAtDate(selM, selD)" :key="l.Name" class="leave-item">
                         <span><b :class="'text-'+l.Group">{{l.Name}}</b>: {{l.Status}}</span>
                         <button v-if="canDelete(l)" @click="doDelete(l)" style="color:#ff6b6b; border:none; background:none; cursor:pointer;">✕</button>
                     </div>
                 </div>
-
                 <div style="border-top: 1px solid #eee; padding-top: 20px;">
                     <div style="text-align:center; font-weight:bold; color:#666; margin-bottom: 15px;">Select Your Name:</div>
                     <div class="staff-grid">
@@ -107,10 +108,9 @@
                             </select>
                         </div>
                     </div>
-
                     <div v-if="currentUserEmail" style="margin-top:20px;">
                         <label style="display:block; font-weight:bold; margin-bottom:8px;">Status:</label>
-                        <select v-model="formStatus" style="width:100%; background: #f9f9f9; border: 1px solid #ddd;">
+                        <select v-model="formStatus" style="background: #f9f9f9; border: 1px solid #ddd;">
                             <option v-for="opt in ['全天休','上午休','下午休','早上外拍','下午外拍','全天外拍','出差']" :key="opt">{{opt}}</option>
                         </select>
                         <button class="btn-confirm" @click="saveLeave" :disabled="loading">{{ loading ? 'Saving...' : 'Confirm' }}</button>
@@ -122,46 +122,61 @@
 
     <script>
         const { createApp, ref, onMounted } = Vue;
-        const API = "https://script.google.com/macros/s/AKfycbyQ2pyXJZfAZVMA1SB8XJc2m3i4tdqTYJCwUa1KoGodr1tSwy_dfljN_CkGIGElA6Uo7Q/exec";
+        const API = "https://script.google.com/macros/s/AKfycbyQ2pyXJZfAZVMA1SB8XJc2m3i4tdqTYJCwUa1KoGodr1tSwy_dfljN_CkGIGElA6Uo7Q/exec"; 
 
         createApp({
             setup() {
-                const staff = ref([{Name:"Tony",Group:"KGB200",Email:"Tony.Pan@acer.com"},{Name:"Esther",Group:"KGB210",Email:"Esther.Yu@acer.com"},{Name:"Jasmin",Group:"KGB210",Email:"Jasmin.Ho@acer.com"},{Name:"Sophie",Group:"KGB210",Email:"Sophie.Wu@acer.com"},{Name:"Edna",Group:"KGB210",Email:"Edna.Yang@acer.com"},{Name:"Sandy",Group:"KGB210",Email:"Sandy.Chen@acer.com"},{Name:"Mars",Group:"KGB210",Email:"Mars.Chang@acer.com"},{Name:"Helen",Group:"KGB210",Email:"Helen.Wang@acer.com"},{Name:"Ann",Group:"KGB210",Email:"Ann.Lai@acer.com"},{Name:"Harry",Group:"KGB210",Email:"Harry.Huang@acer.com"},{Name:"Ming",Group:"KGB210",Email:"Ming.Sung@acer.com"},{Name:"Dino",Group:"KGB210",Email:"Dino.Hung@acer.com"},{Name:"Richard",Group:"KGB210",Email:"Richard.Tseng@acer.com"},{Name:"TsaiMing",Group:"KGB210",Email:"TsaiMing.Hu@acer.com"},{Name:"Ben",Group:"KGB220",Email:"Benjamin.Hsu@acer.com"},{Name:"Kiwi",Group:"KGB220",Email:"Kiwi.Li@acer.com"},{Name:"Brade",Group:"KGB220",Email:"Brade.Hu@acer.com"},{Name:"Alice",Group:"KGB220",Email:"Alice.Yang@acer.com"},{Name:"Emma",Group:"KGB220",Email:"Emma.Chung@acer.com"},{Name:"Danny",Group:"KGB220",Email:"Danny.Lin@acer.com"},{Name:"Cooper",Group:"KGB220",Email:"Cooper.Zhuang@acer.com"},{Name:"Vivian",Group:"KGB250",Email:"Vivian.Chiang@acer.com"},{Name:"Sylvia",Group:"KGB250",Email:"Sylvia.Tsai@acer.com"},{Name:"Kathryn",Group:"KGB250",Email:"Kathryn.Chou@acer.com"},{Name:"Jeff",Group:"KGB250",Email:"Jeff.Liu@acer.com"}]);
-                const leaves = ref([]); const events = ref([]);
-                const searchQuery = ref(""); const activeGroup = ref("");
+                const staff = ref([]); const leaves = ref([]); const events = ref([]);
+                const searchQuery = ref(""); const activeGroup = ref(""); const loadingData = ref(true);
                 const currentUserEmail = ref(""); const showModal = ref(false); const loading = ref(false);
                 const selM = ref(1); const selD = ref(1); const formStatus = ref("全天休");
 
+                const formatDate = (date) => {
+                    const d = new Date(date);
+                    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                };
+
                 const fetchData = async () => {
-                    const res = await fetch(API + "?t=" + Date.now());
-                    const data = await res.json();
-                    leaves.value = data.leaves || [];
-                    events.value = data.events || [];
+                    loadingData.value = true;
+                    try {
+                        const res = await fetch(API + "?t=" + Date.now());
+                        const data = await res.json();
+                        leaves.value = data.leaves || [];
+                        events.value = data.events || [];
+                        staff.value = data.staff || [];
+                        loadingData.value = false;
+                    } catch (e) { console.error(e); }
                 };
 
                 onMounted(fetchData);
 
-                const compareDate = (targetDate, m, d) => {
-                    const dt = new Date(targetDate);
-                    return dt.getFullYear() === 2026 && (dt.getMonth() + 1) === m && dt.getDate() === d;
-                };
-
                 return {
-                    staff, leaves, events, searchQuery, activeGroup, currentUserEmail, showModal, loading, selM, selD, formStatus,
-                    filteredLeaves: (m, d) => leaves.value.filter(l => compareDate(l.Date, m, d) && (!activeGroup.value || l.Group === activeGroup.value) && (!searchQuery.value || l.Name.toLowerCase().includes(searchQuery.value.toLowerCase()))),
-                    getDayEvents: (m, d) => events.value.filter(e => compareDate(e.Date, m, d)),
+                    staff, leaves, events, searchQuery, activeGroup, currentUserEmail, showModal, loading, loadingData, selM, selD, formStatus,
+                    fetchData,
+                    filteredLeaves: (m, d) => {
+                        const target = `2026-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                        return leaves.value.filter(l => formatDate(l.Date) === target && (!activeGroup.value || l.Group === activeGroup.value) && (!searchQuery.value || l.Name.toLowerCase().includes(searchQuery.value.toLowerCase())));
+                    },
+                    getDayEvents: (m, d) => {
+                        const target = `2026-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                        return events.value.filter(e => formatDate(e.Date) === target);
+                    },
                     openModal: (m, d) => { selM.value = m; selD.value = d; currentUserEmail.value = ""; showModal.value = true; },
-                    getAllLeavesAtDate: (m, d) => leaves.value.filter(l => compareDate(l.Date, m, d)),
+                    getAllLeavesAtDate: (m, d) => {
+                        const target = `2026-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                        return leaves.value.filter(l => formatDate(l.Date) === target);
+                    },
                     saveLeave: async () => {
                         loading.value = true;
                         const user = staff.value.find(u => u.Email === currentUserEmail.value);
-                        await fetch(API, { method: "POST", mode: 'no-cors', body: JSON.stringify({ action: "add", Date: `2026-${selM.value}-${selD.value}`, Name: user.Name, Group: user.Group, Status: formStatus.value }) });
-                        setTimeout(async () => { await fetchData(); showModal.value = false; loading.value = false; }, 1200);
+                        const dateStr = `2026-${String(selM.value).padStart(2, '0')}-${String(selD.value).padStart(2, '0')}`;
+                        await fetch(API, { method: "POST", mode: 'no-cors', body: JSON.stringify({ action: "add", Date: dateStr, Name: user.Name, Group: user.Group, Status: formStatus.value }) });
+                        setTimeout(async () => { await fetchData(); showModal.value = false; loading.value = false; }, 1500);
                     },
                     doDelete: async (l) => {
                         if(!confirm(`Delete record?`)) return;
-                        await fetch(API, { method: "POST", mode: 'no-cors', body: JSON.stringify({ action: "delete", Date: l.Date, Name: l.Name }) });
-                        setTimeout(fetchData, 1000);
+                        await fetch(API, { method: "POST", mode: 'no-cors', body: JSON.stringify({ action: "delete", Date: formatDate(l.Date), Name: l.Name }) });
+                        setTimeout(fetchData, 1200);
                     },
                     isWeekend: (m, d) => [0, 6].includes(new Date(2026, m - 1, d).getDay()),
                     getMonthName: (m) => ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m],
