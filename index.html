@@ -13,48 +13,43 @@
         .header-main { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
         
         .filter-group { display: flex; gap: 8px; flex-wrap: wrap; }
-        .filter-btn { padding: 6px 14px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; font-size: 0.85rem; transition: 0.2s; color: white; }
+        .filter-btn { padding: 6px 14px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; font-size: 0.85rem; color: white; }
         .filter-btn.inactive { opacity: 0.3; }
         .btn-all { background: #666; }
 
         .search-wrapper { display: flex; align-items: center; background: white; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; width: 220px; }
         .search-input { border: none; padding: 10px; outline: none; width: 100%; font-size: 0.9rem; }
         
-        /* 日曆響應式佈局修復 */
+        /* 響應式日曆佈局 */
         .calendar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; width: 100%; }
         .month-box { background: white; border-radius: 15px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
-        .day { min-height: 110px; border: 1px solid #f0f0f0; border-radius: 8px; cursor: pointer; padding: 5px; display: flex; flex-direction: column; overflow: hidden; }
+        .day { min-height: 110px; border: 1px solid #f0f0f0; border-radius: 8px; cursor: pointer; padding: 5px; display: flex; flex-direction: column; }
         .is-weekend { background: #fafafa; }
         .date-num { font-size: 0.8rem; color: #999; margin-bottom: 2px; }
         
-        /* 名字標籤樣式 */
-        .name-tag { font-size: 0.75rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 2px; text-align: center; color: white; font-weight: 500; white-space: nowrap; }
-        
-        /* 紫色 Events 標籤修正 */
+        .name-tag { font-size: 0.75rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 2px; text-align: center; color: white; font-weight: 500; }
         .event-tag { background: var(--EVENT); color: white; font-size: 0.7rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 4px; text-align: center; font-weight: bold; }
 
-        /* 組別背景與文字顏色 */
         .bg-KGB200 { background-color: var(--KGB200); } .bg-KGB210 { background-color: var(--KGB210); }
         .bg-KGB220 { background-color: var(--KGB220); } .bg-KGB250 { background-color: var(--KGB250); }
         .text-KGB200 { color: var(--KGB200); } .text-KGB210 { color: var(--KGB210); }
         .text-KGB220 { color: var(--KGB220); } .text-KGB250 { color: var(--KGB250); }
 
-        /* Modal 彈窗樣式 */
-        .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center; z-index:3000; padding: 10px; }
-        .modal-content { background:white; padding:25px; border-radius:20px; width:100%; max-width:550px; max-height: 90vh; overflow-y: auto; }
-        .leave-item { display:flex; justify-content:space-between; padding:10px 0; border-bottom: 1px solid #eee; }
+        /* Modal 彈窗：移除高度限制 */
+        .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center; z-index:3000; padding: 20px; }
+        .modal-content { background:white; padding:25px; border-radius:20px; width:100%; max-width:550px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .leave-item { display:flex; justify-content:space-between; padding:8px 0; border-bottom: 1px solid #eee; }
         
-        /* 四組下拉選單背景色樣式 */
+        /* 四組下拉選單帶色 */
         .staff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
         .staff-select-box { display: flex; flex-direction: column; }
-        .staff-select-box label { font-size: 0.8rem; font-weight: bold; margin-bottom: 5px; }
         .sel-KGB200 { background: #ffebeb; border: 1px solid var(--KGB200); }
         .sel-KGB210 { background: #e6f7f6; border: 1px solid var(--KGB210); }
         .sel-KGB220 { background: #fff9e6; border: 1px solid var(--KGB220); }
         .sel-KGB250 { background: #eef5ff; border: 1px solid var(--KGB250); }
         
-        select { padding: 10px; border-radius: 8px; font-size: 0.9rem; cursor: pointer; }
+        select { padding: 10px; border-radius: 8px; font-size: 0.9rem; outline: none; }
         .btn-confirm { width: 100%; padding: 15px; background: #007bff; color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 20px; }
         [v-cloak] { display: none; }
     </style>
@@ -66,27 +61,22 @@
                 <h2 style="margin:0;">📅 Day-off Tracker 2026</h2>
                 <div class="filter-group">
                     <button class="filter-btn btn-all" :class="{inactive: activeGroup !== ''}" @click="activeGroup = ''">All</button>
-                    <button v-for="g in ['KGB200','KGB210','KGB220','KGB250']" :key="g" 
-                            :class="['filter-btn', 'bg-'+g, {inactive: activeGroup !== '' && activeGroup !== g}]" @click="activeGroup = g">{{ g }}</button>
+                    <button v-for="g in ['KGB200','KGB210','KGB220','KGB250']" :key="g" :class="['filter-btn', 'bg-'+g, {inactive: activeGroup !== '' && activeGroup !== g}]" @click="activeGroup = g">{{ g }}</button>
                 </div>
-                <div class="search-wrapper">
-                    <input type="text" v-model="searchQuery" class="search-input" placeholder="Search Colleague...">
-                </div>
+                <div class="search-wrapper"><input type="text" v-model="searchQuery" class="search-input" placeholder="Search Name..."></div>
             </div>
         </div>
 
         <div class="calendar-grid">
             <div v-for="m in 12" :key="m" class="month-box">
-                <div style="text-align:center; font-weight:bold; margin-bottom:15px; font-size:1.1rem; color:#444;">{{ getMonthName(m) }} 2026</div>
+                <div style="text-align:center; font-weight:bold; margin-bottom:15px;">{{ getMonthName(m) }} 2026</div>
                 <div class="days-grid">
                     <div v-for="h in ['S','M','T','W','T','F','S']" style="text-align:center; font-size:0.7rem; color:#bbb;">{{h}}</div>
                     <div v-for="b in getPadding(m)" :key="'p'+b"></div>
                     <div v-for="d in getDays(m)" :key="'d'+d" class="day" :class="{'is-weekend': isWeekend(m, d)}" @click="openModal(m, d)">
                         <span class="date-num">{{ d }}</span>
                         <div v-for="e in getDayEvents(m, d)" :key="e.Activity" class="event-tag">{{ e.Activity }}</div>
-                        <div v-for="l in filteredLeaves(m, d)" :key="l.Name" :class="['name-tag', 'bg-'+l.Group]" :title="l.Status">
-                            {{ l.Name }}
-                        </div>
+                        <div v-for="l in filteredLeaves(m, d)" :key="l.Name" :class="['name-tag', 'bg-'+l.Group]">{{ l.Name }}</div>
                     </div>
                 </div>
             </div>
@@ -99,7 +89,7 @@
                     <button @click="showModal = false" style="background:none; border:none; font-size:1.8rem; cursor:pointer;">&times;</button>
                 </div>
 
-                <div style="margin-bottom: 20px; max-height: 200px; overflow-y: auto;">
+                <div style="margin-bottom: 20px;">
                     <div v-for="l in getAllLeavesAtDate(selM, selD)" :key="l.Name" class="leave-item">
                         <span><b :class="'text-'+l.Group">{{l.Name}}</b>: {{l.Status}}</span>
                         <button v-if="canDelete(l)" @click="doDelete(l)" style="color:#ff6b6b; border:none; background:none; cursor:pointer;">✕</button>
@@ -110,7 +100,7 @@
                     <div style="text-align:center; font-weight:bold; color:#666; margin-bottom: 15px;">Select Your Name:</div>
                     <div class="staff-grid">
                         <div v-for="g in ['KGB200','KGB210','KGB220','KGB250']" :key="g" class="staff-select-box">
-                            <label :class="'text-'+g">{{g}}</label>
+                            <label :class="'text-'+g" style="font-size:0.8rem; font-weight:bold; margin-bottom:4px;">{{g}}</label>
                             <select v-model="currentUserEmail" :class="'sel-'+g">
                                 <option value="">-- Select --</option>
                                 <option v-for="u in staff.filter(s => s.Group === g)" :key="u.Email" :value="u.Email">{{u.Name}}</option>
@@ -151,30 +141,21 @@
 
                 onMounted(fetchData);
 
+                const compareDate = (targetDate, m, d) => {
+                    const dt = new Date(targetDate);
+                    return dt.getFullYear() === 2026 && (dt.getMonth() + 1) === m && dt.getDate() === d;
+                };
+
                 return {
                     staff, leaves, events, searchQuery, activeGroup, currentUserEmail, showModal, loading, selM, selD, formStatus,
-                    fetchData,
-                    filteredLeaves: (m, d) => leaves.value.filter(l => {
-                        const lDate = new Date(l.Date);
-                        const isDate = lDate.getFullYear() === 2026 && (lDate.getMonth()+1) === m && lDate.getDate() === d;
-                        const isGroup = !activeGroup.value || l.Group === activeGroup.value;
-                        const isSearch = !searchQuery.value || l.Name.toLowerCase().includes(searchQuery.value.toLowerCase());
-                        return isDate && isGroup && isSearch;
-                    }),
-                    getDayEvents: (m, d) => events.value.filter(e => {
-                        const eDate = new Date(e.Date);
-                        return (eDate.getMonth()+1) === m && eDate.getDate() === d;
-                    }),
+                    filteredLeaves: (m, d) => leaves.value.filter(l => compareDate(l.Date, m, d) && (!activeGroup.value || l.Group === activeGroup.value) && (!searchQuery.value || l.Name.toLowerCase().includes(searchQuery.value.toLowerCase()))),
+                    getDayEvents: (m, d) => events.value.filter(e => compareDate(e.Date, m, d)),
                     openModal: (m, d) => { selM.value = m; selD.value = d; currentUserEmail.value = ""; showModal.value = true; },
-                    getAllLeavesAtDate: (m, d) => leaves.value.filter(l => {
-                        const lDate = new Date(l.Date);
-                        return lDate.getFullYear() === 2026 && (lDate.getMonth()+1) === m && lDate.getDate() === d;
-                    }),
+                    getAllLeavesAtDate: (m, d) => leaves.value.filter(l => compareDate(l.Date, m, d)),
                     saveLeave: async () => {
                         loading.value = true;
                         const user = staff.value.find(u => u.Email === currentUserEmail.value);
-                        const payload = { action: "add", Date: `2026-${selM.value}-${selD.value}`, Name: user.Name, Group: user.Group, Status: formStatus.value };
-                        await fetch(API, { method: "POST", mode: 'no-cors', body: JSON.stringify(payload) });
+                        await fetch(API, { method: "POST", mode: 'no-cors', body: JSON.stringify({ action: "add", Date: `2026-${selM.value}-${selD.value}`, Name: user.Name, Group: user.Group, Status: formStatus.value }) });
                         setTimeout(async () => { await fetchData(); showModal.value = false; loading.value = false; }, 1200);
                     },
                     doDelete: async (l) => {
