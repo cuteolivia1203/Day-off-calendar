@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>2026 Tracker Professional</title>
+    <title>2026 Tracker Professional V2</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
         :root { 
@@ -13,7 +13,6 @@
         }
         body { font-family: -apple-system, "Microsoft JhengHei", sans-serif; background: #f4f7f9; margin: 0; padding: 10px; }
         
-        /* 頂部導航 */
         .header { background: white; padding: 12px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 15px; position: sticky; top: 0; z-index: 1000; }
         .header-main { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
         
@@ -21,7 +20,6 @@
         .filter-btn { padding: 8px 16px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 0.85rem; color: white; transition: 0.2s; }
         .filter-btn.inactive { opacity: 0.25; transform: scale(0.95); }
         
-        /* 月曆網格鎖定 */
         .calendar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; width: 100%; }
         .month-box { background: white; border-radius: 15px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
@@ -29,7 +27,6 @@
         .day { min-height: 110px; border: 1px solid #f0f0f0; border-radius: 8px; cursor: pointer; padding: 5px; display: flex; flex-direction: column; overflow: hidden; }
         .is-weekend { background: #f8f9fa !important; } 
         
-        /* 標籤樣式 */
         .name-tag { font-size: 0.75rem; padding: 3px 6px; border-radius: 5px; margin-bottom: 2px; text-align: center; color: white; font-weight: 500; white-space: nowrap; }
         .event-tag { background: var(--EVENT); color: white; font-size: 0.75rem; padding: 3px 6px; border-radius: 5px; margin-bottom: 4px; text-align: center; font-weight: bold; }
 
@@ -37,14 +34,13 @@
         .bg-KGB220 { background: var(--KGB220); } .bg-KGB250 { background: var(--KGB250); }
         .bg-EVENT { background: var(--EVENT); }
 
-        /* 彈窗樣式與彩色下拉選單 */
         .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center; z-index:3000; padding: 15px; }
         .modal-content { background:white; padding:25px; border-radius:20px; width:100%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
         
         .staff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
-        .select-box { padding: 10px; border-radius: 8px; font-size: 0.9rem; width: 100%; border: 1.5px solid #eee; font-weight: 500; outline: none; transition: 0.3s; }
+        .select-box { padding: 10px; border-radius: 8px; font-size: 0.9rem; width: 100%; border: 1.5px solid #eee; font-weight: 500; outline: none; }
         
-        /* 下拉選單背景色還原 */
+        /* 彩色選單背景鎖定 */
         .sel-KGB200 { background-color: var(--KGB200-bg); border-color: var(--KGB200); }
         .sel-KGB210 { background-color: var(--KGB210-bg); border-color: var(--KGB210); }
         .sel-KGB220 { background-color: var(--KGB220-bg); border-color: var(--KGB220); }
@@ -60,7 +56,7 @@
                 <h3 style="margin:0;">🗓️ 2026 Tracker</h3>
                 <div class="filter-group">
                     <button class="filter-btn" style="background:#666" :class="{inactive: activeGroup !== ''}" @click="activeGroup = ''">All</button>
-                    <button v-for="g in ['KGB200','KGB210','KGB220','KGB250']" :key="g" :class="['filter-btn', 'bg-'+g, {inactive: activeGroup !== '' && activeGroup !== g}]" @click="activeGroup = g">{{ g }}</button>
+                    <button v-for="g in groups" :key="g.id" :class="['filter-btn', 'bg-'+g.id, {inactive: activeGroup !== '' && activeGroup !== g.id}]" @click="activeGroup = g.id">{{ g.label }}</button>
                     <button class="filter-btn bg-EVENT" :class="{inactive: activeGroup !== 'EVENT'}" @click="activeGroup = 'EVENT'">Events</button>
                 </div>
                 <div style="display:flex; align-items:center; border:1px solid #ddd; border-radius:8px; overflow:hidden;">
@@ -104,11 +100,11 @@
 
                 <div style="font-weight:bold; color:#666; margin-bottom:10px; font-size:0.9rem;">Quick Add:</div>
                 <div class="staff-grid">
-                    <div v-for="g in ['KGB200','KGB210','KGB220','KGB250']" :key="g">
-                        <label :style="{color: 'var(--'+g+')', fontSize:'0.75rem', fontWeight:'bold', display:'block', marginBottom:'5px'}">{{g}}</label>
-                        <select v-model="currentUserEmail" class="select-box" :class="'sel-'+g">
+                    <div v-for="g in groups" :key="g.id">
+                        <label :style="{color: 'var(--'+g.id+')', fontSize:'0.75rem', fontWeight:'bold', display:'block', marginBottom:'5px'}">{{g.label}}</label>
+                        <select v-model="currentUserEmail" class="select-box" :class="'sel-'+g.id">
                             <option value="">-- Select --</option>
-                            <option v-for="u in staff.filter(s => s.Group === g)" :key="u.Email" :value="u.Email">{{u.Name}}</option>
+                            <option v-for="u in staff.filter(s => s.Group === g.id)" :key="u.Email" :value="u.Email">{{u.Name}}</option>
                         </select>
                     </div>
                 </div>
@@ -127,7 +123,7 @@
 
     <script>
         const { createApp, ref, onMounted } = Vue;
-        // 已自動填入您的最新 API URL
+        // 已更換為您提供的 API URL
         const API = "https://script.google.com/macros/s/AKfycbyQ2pyXJZfAZVMA1SB8XJc2m3i4tdqTYJCwUa1KoGodr1tSwy_dfljN_CkGIGElA6Uo7Q/exec"; 
 
         createApp({
@@ -136,6 +132,14 @@
                 const searchQuery = ref(""); const activeGroup = ref(""); const loadingData = ref(true);
                 const currentUserEmail = ref(""); const showModal = ref(false); const loading = ref(false);
                 const selM = ref(1); const selD = ref(1); const formStatus = ref("全天休");
+
+                // 組別更名邏輯
+                const groups = [
+                    { id: 'KGB200', label: 'KGB200 Tony' },
+                    { id: 'KGB210', label: 'KGB210 Visual Design' },
+                    { id: 'KGB220', label: 'KGB220 Video' },
+                    { id: 'KGB250', label: 'KGB250 Creative Ops.' }
+                ];
 
                 const formatDateObj = (d) => {
                     const date = new Date(d);
@@ -157,7 +161,7 @@
                 onMounted(fetchData);
 
                 return {
-                    staff, leaves, events, searchQuery, activeGroup, currentUserEmail, showModal, loading, loadingData, selM, selD, formStatus,
+                    staff, leaves, events, searchQuery, activeGroup, currentUserEmail, showModal, loading, loadingData, selM, selD, formStatus, groups,
                     fetchData,
                     filteredLeaves: (m, d) => {
                         if(activeGroup.value === 'EVENT') return [];
