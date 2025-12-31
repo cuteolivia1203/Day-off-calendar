@@ -117,4 +117,76 @@
                         <select v-model="formStatus" style="width:100%; padding:12px; border-radius:8px; border:1px solid #ddd;">
                             <option v-for="opt in ['全天休','上午休','下午休','早上外拍','下午外拍','全天外拍','出差']" :key="opt">{{opt}}</option>
                         </select>
-                        <button class="btn-confirm" @click="saveLeave" :disabled="loading">{{ loading ? 'Saving...' : 'Confirm' }}
+                        <button class="btn-confirm" @click="saveLeave" :disabled="loading">{{ loading ? 'Saving...' : 'Confirm' }}</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted } = Vue;
+        const API = "https://script.google.com/macros/s/AKfycbyQ2pyXJZfAZVMA1SB8XJc2m3i4tdqTYJCwUa1KoGodr1tSwy_dfljN_CkGIGElA6Uo7Q/exec";
+
+        createApp({
+            setup() {
+                const staff = ref([{Name:"Tony",Group:"KGB200",Email:"Tony.Pan@acer.com"},{Name:"Esther",Group:"KGB210",Email:"Esther.Yu@acer.com"},{Name:"Jasmin",Group:"KGB210",Email:"Jasmin.Ho@acer.com"},{Name:"Sophie",Group:"KGB210",Email:"Sophie.Wu@acer.com"},{Name:"Edna",Group:"KGB210",Email:"Edna.Yang@acer.com"},{Name:"Sandy",Group:"KGB210",Email:"Sandy.Chen@acer.com"},{Name:"Mars",Group:"KGB210",Email:"Mars.Chang@acer.com"},{Name:"Helen",Group:"KGB210",Email:"Helen.Wang@acer.com"},{Name:"Ann",Group:"KGB210",Email:"Ann.Lai@acer.com"},{Name:"Harry",Group:"KGB210",Email:"Harry.Huang@acer.com"},{Name:"Ming",Group:"KGB210",Email:"Ming.Sung@acer.com"},{Name:"Dino",Group:"KGB210",Email:"Dino.Hung@acer.com"},{Name:"Richard",Group:"KGB210",Email:"Richard.Tseng@acer.com"},{Name:"TsaiMing",Group:"KGB210",Email:"TsaiMing.Hu@acer.com"},{Name:"Ben",Group:"KGB220",Email:"Benjamin.Hsu@acer.com"},{Name:"Kiwi",Group:"KGB220",Email:"Kiwi.Li@acer.com"},{Name:"Brade",Group:"KGB220",Email:"Brade.Hu@acer.com"},{Name:"Alice",Group:"KGB220",Email:"Alice.Yang@acer.com"},{Name:"Emma",Group:"KGB220",Email:"Emma.Chung@acer.com"},{Name:"Danny",Group:"KGB220",Email:"Danny.Lin@acer.com"},{Name:"Cooper",Group:"KGB220",Email:"Cooper.Zhuang@acer.com"},{Name:"Vivian",Group:"KGB250",Email:"Vivian.Chiang@acer.com"},{Name:"Sylvia",Group:"KGB250",Email:"Sylvia.Tsai@acer.com"},{Name:"Kathryn",Group:"KGB250",Email:"Kathryn.Chou@acer.com"},{Name:"Jeff",Group:"KGB250",Email:"Jeff.Liu@acer.com"}]);
+                const leaves = ref([]); const events = ref([]);
+                const searchQuery = ref(""); const activeGroup = ref("");
+                const currentUserEmail = ref(""); const showModal = ref(false); const loading = ref(false);
+                const selM = ref(1); const selD = ref(1); const formStatus = ref("全天休");
+
+                const fetchData = async () => {
+                    const res = await fetch(API + "?t=" + Date.now());
+                    const data = await res.json();
+                    leaves.value = data.leaves || [];
+                    events.value = data.events || [];
+                };
+
+                onMounted(fetchData);
+
+                return {
+                    staff, leaves, events, searchQuery, activeGroup, currentUserEmail, showModal, loading, selM, selD, formStatus,
+                    fetchData, handleEnter: () => document.activeElement.blur(),
+                    filteredLeaves: (m, d) => leaves.value.filter(l => {
+                        const lDate = new Date(l.Date);
+                        const isDate = lDate.getFullYear() === 2026 && (lDate.getMonth()+1) === m && lDate.getDate() === d;
+                        const isGroup = !activeGroup.value || (activeGroup.value === 'EVENTS' ? false : l.Group === activeGroup.value);
+                        const isSearch = !searchQuery.value || l.Name.toLowerCase().includes(searchQuery.value.toLowerCase());
+                        return isDate && isGroup && isSearch;
+                    }),
+                    getDayEvents: (m, d) => events.value.filter(e => {
+                        const eDate = new Date(e.Date);
+                        return (eDate.getMonth()+1) === m && eDate.getDate() === d;
+                    }),
+                    openModal: (m, d) => { selM.value = m; selD.value = d; currentUserEmail.value = ""; showModal.value = true; },
+                    getAllLeavesAtDate: (m, d) => leaves.value.filter(l => {
+                        const lDate = new Date(l.Date);
+                        return lDate.getFullYear() === 2026 && (lDate.getMonth()+1) === m && lDate.getDate() === d;
+                    }),
+                    saveLeave: async () => {
+                        loading.value = true;
+                        const user = staff.value.find(u => u.Email === currentUserEmail.value);
+                        const payload = { action: "add", Date: `2026-${selM.value}-${selD.value}`, Name: user.Name, Group: user.Group, Status: formStatus.value };
+                        await fetch(API, { method: "POST", mode: 'no-cors', body: JSON.stringify(payload) });
+                        setTimeout(async () => { await fetchData(); showModal.value = false; loading.value = false; }, 1200);
+                    },
+                    doDelete: async (l) => {
+                        if(!confirm(`Delete?`)) return;
+                        await fetch(API, { method: "POST", mode: 'no-cors', body: JSON.stringify({ action: "delete", Date: l.Date, Name: l.Name }) });
+                        setTimeout(fetchData, 1000);
+                    },
+                    isWeekend: (m, d) => [0, 6].includes(new Date(2026, m - 1, d).getDay()),
+                    getMonthName: (m) => ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m],
+                    getDays: (m) => new Date(2026, m, 0).getDate(),
+                    getPadding: (m) => new Date(2026, m - 1, 1).getDay(),
+                    canDelete: (l) => {
+                        const user = staff.value.find(u => u.Email === currentUserEmail.value);
+                        return user && (user.Name === 'Tony' || l.Name === user.Name);
+                    }
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
