@@ -133,7 +133,7 @@
                 
                 <div v-if="currentUserEmail" style="margin-top:15px; padding-top:15px; border-top:2px dashed #eee;">
                     <select v-model="formStatus" class="select-box" style="margin-bottom:12px; border:1px solid #007bff; background:#f0f7ff;">
-                        <option v-for="opt in ['全天休','上午休','下午休','上午外出','下午外出','全天外出','國外出差']" :key="opt">{{opt}}</option>
+                        <option v-for="opt in ['上午休','下午休','全天休','上午外出','下午外出','全天外出','國外出差']" :key="opt">{{opt}}</option>
                     </select>
                     <button style="width:100%; padding:12px; background:#007bff; color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer; font-size:0.95rem;" @click="saveLeave" :disabled="loading">
                         {{ loading ? 'Processing...' : 'Confirm Submission' }}
@@ -242,5 +242,6 @@
     </script>
 </body>
 </html>
+
 
 
