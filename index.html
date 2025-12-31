@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Day-off Tracker 2026 (Fix Events)</title>
+    <title>Day-off Tracker 2026 (Perfect Version)</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
         :root { --KGB200: #ff6b6b; --KGB210: #4ecdc4; --KGB220: #feca57; --KGB250: #54a0ff; --EVENT: #af7ac5; }
@@ -11,10 +11,9 @@
         .header { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 15px; position: sticky; top: 0; z-index: 1000; }
         .header-main { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
         
-        /* 搜尋框與圖示補回 */
         .search-wrapper { display: flex; align-items: center; background: white; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; width: 250px; }
         .search-input { border: none; padding: 10px; outline: none; width: 100%; font-size: 0.9rem; }
-        .search-btn { background: #eee; border: none; padding: 8px 12px; cursor: pointer; color: #666; font-size: 0.8rem; border-left: 1px solid #ddd; }
+        .search-btn { background: #eee; border: none; padding: 8px 12px; cursor: pointer; color: #666; font-size: 0.8rem; border-left: 1px solid #ddd; font-weight: bold; }
         
         .filter-group { display: flex; gap: 8px; flex-wrap: wrap; }
         .filter-btn { padding: 6px 14px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; font-size: 0.85rem; color: white; }
@@ -25,11 +24,12 @@
         .month-box { background: white; border-radius: 15px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
         .day { min-height: 110px; border: 1px solid #f0f0f0; border-radius: 8px; cursor: pointer; padding: 5px; display: flex; flex-direction: column; }
-        .is-weekend { background: #fafafa; }
-        .date-num { font-size: 0.8rem; color: #999; margin-bottom: 2px; }
         
+        /* 週末背景色微調加深 */
+        .is-weekend { background: #f0f0f0 !important; } 
+        
+        .date-num { font-size: 0.8rem; color: #999; margin-bottom: 2px; }
         .name-tag { font-size: 0.75rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 2px; text-align: center; color: white; font-weight: 500; }
-        /* 紫色事件標籤 */
         .event-tag { background: var(--EVENT); color: white; font-size: 0.7rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 4px; text-align: center; font-weight: bold; }
 
         .bg-KGB200 { background-color: var(--KGB200); } .bg-KGB210 { background-color: var(--KGB210); }
@@ -38,10 +38,9 @@
         .text-KGB220 { color: var(--KGB220); } .text-KGB250 { color: var(--KGB250); }
 
         .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center; z-index:3000; padding: 20px; }
-        .modal-content { background:white; padding:25px; border-radius:20px; width:100%; max-width:550px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .modal-content { background:white; padding:25px; border-radius:20px; width:100%; max-width:550px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); max-height: 95vh; overflow-y: auto; }
         .leave-item { display:flex; justify-content:space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
         
-        /* 下拉選單顏色 */
         .staff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
         .sel-KGB200 { background: #ffebeb; border: 1px solid var(--KGB200); }
         .sel-KGB210 { background: #e6f7f6; border: 1px solid var(--KGB210); }
@@ -68,11 +67,11 @@
             </div>
         </div>
 
-        <div v-if="loadingData" style="text-align:center; padding: 50px; color:#666;">Loading Data...</div>
+        <div v-if="loadingData" style="text-align:center; padding: 50px; color:#666;">Syncing with Excel...</div>
 
         <div v-else class="calendar-grid">
             <div v-for="m in 12" :key="m" class="month-box">
-                <div style="text-align:center; font-weight:bold; margin-bottom:15px;">{{ getMonthName(m) }} 2026</div>
+                <div style="text-align:center; font-weight:bold; margin-bottom:15px; color:#444;">{{ getMonthName(m) }} 2026</div>
                 <div class="days-grid">
                     <div v-for="h in ['S','M','T','W','T','F','S']" style="text-align:center; font-size:0.7rem; color:#bbb;">{{h}}</div>
                     <div v-for="b in getPadding(m)" :key="'p'+b"></div>
