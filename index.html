@@ -3,17 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>2026 Tracker Professional V4</title>
+    <title>2026 Tracker Final V5</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
         :root { 
             --KGB200: #ff6b6b; --KGB210: #4ecdc4; --KGB220: #feca57; --KGB250: #54a0ff; 
-            --EVENT: #8e44ad; 
+            --EVENT: #8e44ad; /* 深紫色 */
             --KGB200-bg: #fff1f1; --KGB210-bg: #e6fffa; --KGB220-bg: #fffbeb; --KGB250-bg: #ebf8ff;
         }
         body { font-family: -apple-system, "Microsoft JhengHei", sans-serif; background: #f4f7f9; margin: 0; padding: 10px; }
         
-        /* Header 調整 */
         .header { background: white; padding: 12px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 15px; position: sticky; top: 0; z-index: 1000; }
         .header-main { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
         
@@ -25,44 +24,29 @@
         .month-box { background: white; border-radius: 15px; padding: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
         
-        .day { min-height: 90px; border: 1px solid #f0f0f0; border-radius: 8px; cursor: pointer; padding: 4px; display: flex; flex-direction: column; overflow: hidden; }
+        .day { min-height: 95px; border: 1px solid #f0f0f0; border-radius: 8px; cursor: pointer; padding: 4px; display: flex; flex-direction: column; overflow: hidden; }
         .is-weekend { background: #f8f9fa !important; } 
         
-        .name-tag { font-size: 0.7rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 2px; text-align: center; color: white; font-weight: 500; white-space: nowrap; }
+        .name-tag { font-size: 0.7rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 2px; text-align: center; color: white; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .event-tag { background: var(--EVENT); color: white; font-size: 0.7rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 4px; text-align: center; font-weight: bold; }
 
         .bg-KGB200 { background: var(--KGB200); } .bg-KGB210 { background: var(--KGB210); }
         .bg-KGB220 { background: var(--KGB220); } .bg-KGB250 { background: var(--KGB250); }
         .bg-EVENT { background: var(--EVENT); }
 
-        /* Modal 修正：解決手機版裁切問題 */
+        /* 修正手機版裁切問題 */
         .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center; z-index:3000; }
         .modal-content { 
-            background:white; 
-            padding: 20px; 
-            border-radius:20px; 
-            width: calc(100% - 30px); /* 確保左右留白，不被裁切 */
-            max-width: 450px; 
-            max-height: 85vh; 
-            overflow-y: auto; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2); 
-            box-sizing: border-box; /* 確保 padding 不會撐破寬度 */
+            background:white; padding: 20px; border-radius:20px; 
+            width: 92%; max-width: 450px; /* 改為百分比防止裁切 */
+            max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.2); 
+            box-sizing: border-box; 
         }
         
-        /* 快速加入區域調整 */
-        .staff-grid { 
-            display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            gap: 12px; 
-            margin-top: 15px; 
-        }
-        /* 手機小螢幕改為單欄，避免被裁切 */
-        @media (max-width: 400px) {
-            .staff-grid { grid-template-columns: 1fr; }
-        }
+        .staff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; }
+        @media (max-width: 400px) { .staff-grid { grid-template-columns: 1fr; } }
 
         .select-box { padding: 10px; border-radius: 8px; font-size: 0.9rem; width: 100%; border: 1.5px solid #eee; font-weight: 500; outline: none; box-sizing: border-box; }
-        
         .sel-KGB200 { background-color: var(--KGB200-bg); border-color: var(--KGB200); }
         .sel-KGB210 { background-color: var(--KGB210-bg); border-color: var(--KGB210); }
         .sel-KGB220 { background-color: var(--KGB220-bg); border-color: var(--KGB220); }
@@ -108,19 +92,19 @@
         <div v-if="showModal" class="modal" @click.self="showModal = false">
             <div class="modal-content">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                    <h2 style="margin:0; font-size:1.2rem; color:#333;">📍 {{ getMonthName(selM) }} {{ selD }}, 2026</h2>
+                    <h2 style="margin:0; font-size:1.1rem; color:#333;">📍 {{ getMonthName(selM) }} {{ selD }}, 2026</h2>
                     <button @click="showModal = false" style="background:none; border:none; font-size:1.8rem; cursor:pointer; color:#ccc; line-height:1;">&times;</button>
                 </div>
                 
                 <div style="margin-bottom: 15px; background:#fdfdfd; border-radius:12px; border:1px solid #f0f0f0;">
                     <div v-for="l in getAllLeavesAtDate(selM, selD)" :key="l.Name" style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-bottom:1px solid #f9f9f9;">
-                        <span style="font-size:0.95rem;"><b :style="{color: 'var(--'+l.Group+')'}">{{l.Name}}</b>: {{l.Status}}</span>
-                        <button v-if="canDelete(l)" @click="doDelete(l)" style="color:#ff6b6b; border:none; background:none; cursor:pointer; font-weight:bold; padding:5px;">✕</button>
+                        <span style="font-size:0.9rem;"><b :style="{color: 'var(--'+l.Group+')'}">{{l.Name}}</b>: {{l.Status}}</span>
+                        <button v-if="canDelete(l)" @click="doDelete(l)" style="color:#ff6b6b; border:none; background:none; cursor:pointer; font-weight:bold; padding:5px; font-size:1.1rem;">✕</button>
                     </div>
-                    <div v-if="getAllLeavesAtDate(selM, selD).length === 0" style="padding:15px; text-align:center; color:#ccc; font-size:0.9rem; font-style:italic;">No records today</div>
+                    <div v-if="getAllLeavesAtDate(selM, selD).length === 0" style="padding:15px; text-align:center; color:#ccc; font-size:0.85rem; font-style:italic;">No records today</div>
                 </div>
 
-                <div style="font-weight:bold; color:#666; margin-bottom:8px; font-size:0.85rem;">Quick Add:</div>
+                <div style="font-weight:bold; color:#666; margin-bottom:8px; font-size:0.8rem;">Quick Add:</div>
                 <div class="staff-grid">
                     <div v-for="g in groups" :key="g.id">
                         <label :style="{color: 'var(--'+g.id+')', fontSize:'0.7rem', fontWeight:'bold', display:'block', marginBottom:'3px'}">{{g.label}}</label>
@@ -133,10 +117,10 @@
                 
                 <div v-if="currentUserEmail" style="margin-top:15px; padding-top:15px; border-top:2px dashed #eee;">
                     <select v-model="formStatus" class="select-box" style="margin-bottom:12px; border:1px solid #007bff; background:#f0f7ff;">
-                        <option v-for="opt in ['上午休','下午休','全天休','上午外出','下午外出','全天外出','國外出差']" :key="opt">{{opt}}</option>
+                        <option v-for="opt in ['全天休','上午休','下午休','早上外拍','下午外拍','全天外拍','出差']" :key="opt">{{opt}}</option>
                     </select>
-                    <button style="width:100%; padding:12px; background:#007bff; color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer; font-size:0.95rem;" @click="saveLeave" :disabled="loading">
-                        {{ loading ? 'Processing...' : 'Confirm Submission' }}
+                    <button style="width:100%; padding:12px; background:#007bff; color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer; font-size:0.9rem;" @click="saveLeave" :disabled="loading">
+                        {{ loading ? 'Saving...' : 'Confirm' }}
                     </button>
                 </div>
             </div>
@@ -168,24 +152,31 @@
                 const fetchData = async () => {
                     loadingData.value = true;
                     try {
+                        // 重點：加上時間戳防止讀取緩存資料
                         const res = await fetch(API + "?t=" + Date.now());
                         const data = await res.json();
                         leaves.value = data.leaves || [];
                         events.value = data.events || [];
                         staff.value = data.staff || [];
                         loadingData.value = false;
-                    } catch (e) { console.error("Fetch Error:", e); }
+                    } catch (e) { console.error("Fetch Error:", e); loadingData.value = false; }
                 };
 
                 const doDelete = async (l) => {
                     if (!confirm(`確定要刪除 ${l.Name} 的這筆紀錄嗎？`)) return;
                     loading.value = true;
-                    await fetch(API, { 
-                        method: "POST", 
-                        mode: 'no-cors', 
-                        body: JSON.stringify({ action: "delete", date: formatDateObj(l.Date), name: l.Name }) 
-                    });
-                    setTimeout(async () => { await fetchData(); loading.value = false; }, 1500);
+                    try {
+                        await fetch(API, { 
+                            method: "POST", 
+                            mode: 'no-cors', 
+                            body: JSON.stringify({ action: "delete", date: formatDateObj(l.Date), name: l.Name }) 
+                        });
+                        // 刪除後稍微等待，確保後端完成寫入再刷新
+                        setTimeout(async () => { 
+                            await fetchData(); 
+                            loading.value = false;
+                        }, 1200);
+                    } catch (e) { alert("刪除失敗"); loading.value = false; }
                 };
 
                 onMounted(fetchData);
@@ -213,6 +204,7 @@
                         return leaves.value.filter(l => formatDateObj(l.Date) === target);
                     },
                     saveLeave: async () => {
+                        if(!currentUserEmail.value) return;
                         loading.value = true;
                         const user = staff.value.find(u => u.Email === currentUserEmail.value);
                         const dateStr = `2026-${selM.value}-${selD.value}`;
@@ -242,6 +234,3 @@
     </script>
 </body>
 </html>
-
-
-
