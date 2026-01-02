@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>2026 Tracker - Final Fix</title>
+    <title>2026 Team Tracker</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
         :root { 
@@ -11,19 +11,25 @@
             --EVENT: #8e44ad; 
             --KGB200-bg: #fff1f1; --KGB210-bg: #e6fffa; --KGB220-bg: #fffbeb; --KGB250-bg: #ebf8ff;
         }
-        body { font-family: -apple-system, "Microsoft JhengHei", sans-serif; background: #f4f7f9; margin: 0; padding: 10px; }
+        body { font-family: -apple-system, sans-serif; background: #f4f7f9; margin: 0; padding: 10px; color: #333; }
         .header { background: white; padding: 12px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 15px; position: sticky; top: 0; z-index: 1000; }
         .header-main { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
         .filter-group { display: flex; gap: 6px; flex-wrap: wrap; }
         .filter-btn { padding: 8px 14px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 0.8rem; color: white; transition: 0.2s; }
         .filter-btn.inactive { opacity: 0.25; transform: scale(0.95); }
+        .bg-KGB200 { background: var(--KGB200); } .bg-KGB210 { background: var(--KGB210); }
+        .bg-KGB220 { background: var(--KGB220); } .bg-KGB250 { background: var(--KGB250); }
+        .bg-EVENT { background: var(--EVENT); }
+
         .calendar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; width: 100%; }
         .month-box { background: white; border-radius: 15px; padding: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
         .day { min-height: 95px; border: 1px solid #f0f0f0; border-radius: 8px; cursor: pointer; padding: 4px; display: flex; flex-direction: column; overflow: hidden; background: #fff; }
         .is-weekend { background: #f8f9fa !important; } 
-        .name-tag { font-size: 0.7rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 2px; text-align: center; color: white; font-weight: 500; white-space: nowrap; overflow: hidden; }
+        
+        .name-tag { font-size: 0.7rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 2px; text-align: center; color: white; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .event-tag { background: var(--EVENT); color: white; font-size: 0.7rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 4px; text-align: center; font-weight: bold; }
+        
         .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center; z-index:3000; }
         .modal-content { background:white; padding: 20px; border-radius:20px; width: 92%; max-width: 480px; max-height: 85vh; overflow-y: auto; box-sizing: border-box; }
         .staff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; }
@@ -32,8 +38,8 @@
         .sel-KGB210 { background-color: var(--KGB210-bg); border-color: var(--KGB210); }
         .sel-KGB220 { background-color: var(--KGB220-bg); border-color: var(--KGB220); }
         .sel-KGB250 { background-color: var(--KGB250-bg); border-color: var(--KGB250); }
-        .bg-KGB200 { background: var(--KGB200); } .bg-KGB210 { background: var(--KGB210); }
-        .bg-KGB220 { background: var(--KGB220); } .bg-KGB250 { background: var(--KGB250); }
+        
+        .delete-btn { color: #ff6b6b; border: none; background: none; cursor: pointer; font-weight: bold; padding: 4px; font-size: 1.1rem; }
         [v-cloak] { display: none; }
     </style>
 </head>
@@ -47,20 +53,20 @@
                     <button v-for="g in groups" :key="g.id" :class="['filter-btn', 'bg-'+g.id, {inactive: activeGroup !== '' && activeGroup !== g.id}]" @click="activeGroup = g.id">{{ g.label }}</button>
                     <button class="filter-btn bg-EVENT" :class="{inactive: activeGroup !== 'EVENT'}" @click="activeGroup = 'EVENT'">Events</button>
                 </div>
-                <div style="display:flex; align-items:center; border:1px solid #ddd; border-radius:8px; margin-top:5px;">
-                    <input type="text" v-model="searchQuery" style="border:none; padding:8px; width:110px;" placeholder="Search...">
-                    <button @click="fetchData" style="background:#eee; border:none; padding:8px 10px; cursor:pointer;">Refresh</button>
+                <div style="display:flex; align-items:center; border:1px solid #ddd; border-radius:8px; overflow:hidden;">
+                    <input type="text" v-model="searchQuery" style="border:none; padding:8px; width:110px; outline:none;" placeholder="Search Name...">
+                    <button @click="fetchData" style="background:#eee; border:none; padding:8px 10px; cursor:pointer;">Refresh ↻</button>
                 </div>
             </div>
         </div>
 
-        <div v-if="loadingData" style="text-align:center; padding: 100px;">Loading...</div>
+        <div v-if="loadingData" style="text-align:center; padding: 100px; color:#999;">Loading...</div>
 
         <div v-else class="calendar-grid">
             <div v-for="m in 12" :key="m" class="month-box">
                 <div style="text-align:center; font-weight:bold; margin-bottom:10px;">{{ getMonthName(m) }} 2026</div>
                 <div class="days-grid">
-                    <div v-for="h in ['S','M','T','W','T','F','S']" style="text-align:center; font-size:0.7rem; color:#bbb;">{{h}}</div>
+                    <div v-for="h in ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']" style="text-align:center; font-size:0.6rem; color:#bbb; padding-bottom:5px;">{{h}}</div>
                     <div v-for="b in getPadding(m)" :key="'p'+b"></div>
                     <div v-for="d in getDays(m)" :key="'d'+d" class="day" :class="{'is-weekend': isWeekend(m, d)}" @click="openModal(m, d)">
                         <span style="font-size:0.75rem; color:#999;">{{ d }}</span>
@@ -73,21 +79,23 @@
 
         <div v-if="showModal" class="modal" @click.self="showModal = false">
             <div class="modal-content">
-                <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                     <h2 style="margin:0; font-size:1.1rem;">📍 {{ getMonthName(selM) }} {{ selD }}, 2026</h2>
-                    <button @click="showModal = false" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+                    <button @click="showModal = false" style="background:none; border:none; font-size:1.8rem; cursor:pointer; color:#ccc;">&times;</button>
                 </div>
                 
-                <div style="margin-bottom: 15px; border:1px solid #f0f0f0; border-radius:12px;">
-                    <div v-for="l in getAllLeavesAtDate(selM, selD)" :key="l.Name" style="padding:8px 12px; border-bottom:1px solid #f9f9f9; display:flex; justify-content:space-between;">
+                <div style="margin-bottom: 20px; background:#fdfdfd; border-radius:12px; border:1px solid #f0f0f0; overflow:hidden;">
+                    <div v-for="l in getAllLeavesAtDate(selM, selD)" :key="l.Name + l.Status" style="display:flex; justify-content:space-between; align-items:center; padding:10px 15px; border-bottom:1px solid #f9f9f9;">
                         <span><b :style="{color: 'var(--'+l.Group+')'}">{{l.Name}}</b>: {{l.Status}}</span>
-                        <button @click="doDelete(l)" style="color:red; border:none; background:none; cursor:pointer;">✕</button>
+                        <button v-if="canDelete(l)" @click="doDelete(l)" class="delete-btn">✕</button>
                     </div>
+                    <div v-if="getAllLeavesAtDate(selM, selD).length === 0" style="padding:20px; text-align:center; color:#ccc; font-style:italic; font-size:0.9rem;">No records today</div>
                 </div>
 
+                <div style="font-weight:bold; color:#888; margin-bottom:10px; font-size:0.85rem;">Quick Add:</div>
                 <div class="staff-grid">
                     <div v-for="g in groups" :key="g.id">
-                        <label :style="{color: 'var(--'+g.id+')', fontSize:'0.7rem', fontWeight:'bold'}">{{g.label}}</label>
+                        <label :style="{color: 'var(--'+g.id+')', fontSize:'0.7rem', fontWeight:'bold', display:'block'}">{{g.label}}</label>
                         <select v-model="currentUserEmail" class="select-box" :class="'sel-'+g.id">
                             <option value="">-- Select --</option>
                             <option v-for="u in staff.filter(s => s.Group === g.id)" :key="u.Email" :value="u.Email">{{u.Name}}</option>
@@ -95,11 +103,11 @@
                     </div>
                 </div>
                 
-                <div v-if="currentUserEmail" style="margin-top:15px; padding-top:15px; border-top:1px dashed #eee;">
-                    <select v-model="formStatus" class="select-box" style="margin-bottom:12px;">
+                <div v-if="currentUserEmail" style="margin-top:20px; padding-top:20px; border-top:2px dashed #eee;">
+                    <select v-model="formStatus" class="select-box" style="margin-bottom:15px;">
                         <option v-for="opt in ['上午休','下午休','全天休','上午外出','下午外出','全天外出','國外出差']" :key="opt">{{opt}}</option>
                     </select>
-                    <button style="width:100%; padding:12px; background:#007bff; color:white; border:none; border-radius:10px; font-weight:bold;" @click="saveLeave">
+                    <button style="width:100%; padding:14px; background:#007bff; color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer;" @click="saveLeave" :disabled="loading">
                         {{ loading ? 'Saving...' : 'Confirm' }}
                     </button>
                 </div>
@@ -109,7 +117,9 @@
 
     <script>
         const { createApp, ref, onMounted } = Vue;
-        const API = "https://script.google.com/macros/s/AKfycbyQ2pyXJZfAZVMA1SB8XJc2m3i4tdqTYJCwUa1KoGodr1tSwy_dfljN_CkGIGElA6Uo7Q/exec"; 
+        const API = "YOUR_GAS_WEB_APP_URL"; // Please update your URL here
+
+        const ADMIN_EMAILS = ["Tony.Pan@acer.com", "Esther.Yu@acer.com", "Benjamin.Hsu@acer.com", "Vivian.Chiang@acer.com"];
 
         createApp({
             setup() {
@@ -117,13 +127,11 @@
                 const searchQuery = ref(""); const activeGroup = ref(""); const loadingData = ref(true);
                 const currentUserEmail = ref(""); const showModal = ref(false); const loading = ref(false);
                 const selM = ref(1); const selD = ref(1); const formStatus = ref("全天休"); 
-                const groups = [{ id: 'KGB200', label: 'KGB200 Tony' },{ id: 'KGB210', label: 'KGB210 Visual' },{ id: 'KGB220', label: 'KGB220 Video' },{ id: 'KGB250', label: 'KGB250 Ops' }];
+                const groups = [{id:'KGB200',label:'KGB200 Tony'},{id:'KGB210',label:'KGB210 Visual'},{id:'KGB220',label:'KGB220 Video'},{id:'KGB250',label:'KGB250 Ops'}];
 
-                // 核心修復：統一日期比對格式 (YYYY-MM-DD)
                 const formatDate = (dateStr) => {
                     const d = new Date(dateStr);
-                    if (isNaN(d.getTime())) return "";
-                    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                    return isNaN(d.getTime()) ? "" : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                 };
 
                 const fetchData = async () => {
@@ -131,30 +139,28 @@
                     try {
                         const res = await fetch(API + "?t=" + Date.now());
                         const data = await res.json();
-                        // 處理後端日期
                         leaves.value = (data.leaves || []).map(l => ({ ...l, matchDate: formatDate(l.Date) }));
                         events.value = (data.events || []).map(e => ({ ...e, matchDate: formatDate(e.Date) }));
                         staff.value = data.staff || [];
                         loadingData.value = false;
-                    } catch (e) { console.error(e); loadingData.value = false; }
+                    } catch (e) { loadingData.value = false; }
                 };
 
                 const getTargetDate = (m, d) => `2026-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const canDelete = (l) => currentUserEmail.value && (ADMIN_EMAILS.includes(currentUserEmail.value) || l.Email === currentUserEmail.value);
 
                 onMounted(fetchData);
 
                 return {
                     staff, leaves, events, searchQuery, activeGroup, currentUserEmail, showModal, loading, loadingData, selM, selD, formStatus, groups,
-                    fetchData,
+                    fetchData, canDelete,
                     getMonthName: (m) => ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m],
                     getDays: (m) => new Date(2026, m, 0).getDate(),
                     getPadding: (m) => new Date(2026, m - 1, 1).getDay(),
                     getDayEvents: (m, d) => events.value.filter(e => e.matchDate === getTargetDate(m, d)),
                     filteredLeaves: (m, d) => {
-                        const target = getTargetDate(m, d);
-                        return leaves.value.filter(l => {
-                            return l.matchDate === target && (!activeGroup.value || l.Group === activeGroup.value) && (!searchQuery.value || l.Name.toLowerCase().includes(searchQuery.value.toLowerCase()));
-                        });
+                        const t = getTargetDate(m, d);
+                        return leaves.value.filter(l => l.matchDate === t && (!activeGroup.value || l.Group === activeGroup.value) && (!searchQuery.value || l.Name.toLowerCase().includes(searchQuery.value.toLowerCase())));
                     },
                     getAllLeavesAtDate: (m, d) => leaves.value.filter(l => l.matchDate === getTargetDate(m, d)),
                     openModal: (m, d) => { selM.value = m; selD.value = d; currentUserEmail.value = ""; showModal.value = true; },
@@ -166,9 +172,10 @@
                         setTimeout(async () => { await fetchData(); showModal.value = false; loading.value = false; }, 1500);
                     },
                     doDelete: async (l) => {
-                        if(!confirm("Delete?")) return;
-                        await fetch(API, { method: "POST", mode: 'no-cors', body: JSON.stringify({ action: "delete", date: l.matchDate, name: l.Name }) });
-                        setTimeout(fetchData, 1000);
+                        if(!confirm(`Delete this record for ${l.Name}?`)) return;
+                        loading.value = true;
+                        await fetch(API, { method: "POST", mode: 'no-cors', body: JSON.stringify({ action: "delete", date: l.matchDate, name: l.Name, operatorEmail: currentUserEmail.value }) });
+                        setTimeout(async () => { await fetchData(); loading.value = false; }, 1200);
                     },
                     isWeekend: (m, d) => [0, 6].includes(new Date(2026, m - 1, d).getDay())
                 };
