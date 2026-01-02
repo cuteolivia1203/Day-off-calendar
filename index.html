@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>2026 Tracker Final V6</title>
+    <title>2026 Tracker - EN/CH Mixed</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
         :root { 
@@ -65,13 +65,13 @@
                     <button class="filter-btn bg-EVENT" :class="{inactive: activeGroup !== 'EVENT'}" @click="activeGroup = 'EVENT'">Events</button>
                 </div>
                 <div style="display:flex; align-items:center; border:1px solid #ddd; border-radius:8px; overflow:hidden; margin-top:5px;">
-                    <input type="text" v-model="searchQuery" style="border:none; padding:8px; outline:none; width:110px; font-size:0.85rem;" placeholder="Search Name...">
+                    <input type="text" v-model="searchQuery" style="border:none; padding:8px; outline:none; width:110px; font-size:0.85rem;" placeholder="Search...">
                     <button @click="fetchData" style="background:#eee; border:none; padding:8px 10px; cursor:pointer; font-weight:bold; border-left:1px solid #ddd; font-size:0.85rem;">Refresh ↻</button>
                 </div>
             </div>
         </div>
 
-        <div v-if="loadingData" style="text-align:center; padding: 100px; color:#666; font-weight:bold;">Loading Data...</div>
+        <div v-if="loadingData" style="text-align:center; padding: 100px; color:#666; font-weight:bold;">Loading...</div>
 
         <div v-else class="calendar-grid">
             <div v-for="m in 12" :key="m" class="month-box">
@@ -81,7 +81,7 @@
                     <div v-for="b in getPadding(m)" :key="'p'+b"></div>
                     <div v-for="d in getDays(m)" :key="'d'+d" class="day" :class="{'is-weekend': isWeekend(m, d)}" @click="openModal(m, d)">
                         <span style="font-size:0.75rem; color:#999; margin-bottom:4px;">{{ d }}</span>
-                        <div v-for="e in getDayEvents(m, d)" :key="e.Activity" class="event-tag" v-show="!activeGroup || activeGroup === 'EVENT'">{{ e.Activity }}</div>
+                        <div v-for="e in getDayEvents(m, d)" :key="e.Activity" class="event-tag">{{ e.Activity }}</div>
                         <div v-for="l in filteredLeaves(m, d)" :key="l.Name" :class="['name-tag', 'bg-'+l.Group]">{{ l.Name }}</div>
                     </div>
                 </div>
@@ -128,7 +128,6 @@
 
     <script>
         const { createApp, ref, onMounted } = Vue;
-        // 1. 更新後的 API URL
         const API = "https://script.google.com/macros/s/AKfycbyQ2pyXJZfAZVMA1SB8XJc2m3i4tdqTYJCwUa1KoGodr1tSwy_dfljN_CkGIGElA6Uo7Q/exec"; 
 
         createApp({
@@ -136,7 +135,7 @@
                 const staff = ref([]); const leaves = ref([]); const events = ref([]);
                 const searchQuery = ref(""); const activeGroup = ref(""); const loadingData = ref(true);
                 const currentUserEmail = ref(""); const showModal = ref(false); const loading = ref(false);
-                const selM = ref(1); const selD = ref(1); const formStatus = ref("上午休"); // 預設值調整
+                const selM = ref(1); const selD = ref(1); const formStatus = ref("上午休"); 
                 const groups = [
                     { id: 'KGB200', label: 'KGB200 Tony' },
                     { id: 'KGB210', label: 'KGB210 Visual Design' },
@@ -156,13 +155,13 @@
                         const data = await res.json();
                         leaves.value = data.leaves || [];
                         events.value = data.events || [];
-                        staff.value = data.staff || [];
+                        staff.value = data.staff || []; 
                         loadingData.value = false;
                     } catch (e) { console.error("Fetch Error:", e); loadingData.value = false; }
                 };
 
                 const doDelete = async (l) => {
-                    if (!confirm(`確定要刪除 ${l.Name} 的這筆紀錄嗎？`)) return;
+                    if (!confirm(`Delete ${l.Name}'s record?`)) return;
                     loading.value = true;
                     try {
                         await fetch(API, { 
@@ -171,7 +170,7 @@
                             body: JSON.stringify({ action: "delete", date: formatDateObj(l.Date), name: l.Name }) 
                         });
                         setTimeout(async () => { await fetchData(); loading.value = false; }, 1200);
-                    } catch (e) { alert("刪除失敗"); loading.value = false; }
+                    } catch (e) { loading.value = false; }
                 };
 
                 onMounted(fetchData);
@@ -180,7 +179,6 @@
                     staff, leaves, events, searchQuery, activeGroup, currentUserEmail, showModal, loading, loadingData, selM, selD, formStatus, groups,
                     fetchData, doDelete,
                     filteredLeaves: (m, d) => {
-                        if(activeGroup.value === 'EVENT') return [];
                         const target = `2026-${m}-${d}`;
                         return leaves.value.filter(l => {
                             const dateMatch = formatDateObj(l.Date) === target;
@@ -202,12 +200,11 @@
                         if(!currentUserEmail.value) return;
                         loading.value = true;
                         const user = staff.value.find(u => u.Email === currentUserEmail.value);
-                        const dateStr = `2026-${selM.value}-${selD.value}`;
                         await fetch(API, { 
                             method: "POST", 
                             mode: 'no-cors', 
                             body: JSON.stringify({ 
-                                action: "add", Date: dateStr, Name: user.Name, 
+                                action: "add", Date: `2026-${selM.value}-${selD.value}`, Name: user.Name, 
                                 Group: user.Group, Status: formStatus.value 
                             }) 
                         });
@@ -219,9 +216,8 @@
                     getPadding: (m) => new Date(2026, m - 1, 1).getDay(),
                     canDelete: (l) => {
                         const user = staff.value.find(u => u.Email === currentUserEmail.value);
-                        if (!user) return false;
                         const admins = ['Tony', 'Ben', 'Esther', 'Vivian'];
-                        return admins.includes(user.Name) || l.Name === user.Name;
+                        return user && (admins.includes(user.Name) || l.Name === user.Name);
                     }
                 };
             }
