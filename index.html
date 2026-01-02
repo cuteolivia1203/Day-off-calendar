@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>2026 Tracker Final V8</title>
+    <title>2026 Tracker - Corrected V10</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
         :root { 
@@ -12,46 +12,27 @@
             --KGB200-bg: #fff1f1; --KGB210-bg: #e6fffa; --KGB220-bg: #fffbeb; --KGB250-bg: #ebf8ff;
         }
         body { font-family: -apple-system, "Microsoft JhengHei", sans-serif; background: #f4f7f9; margin: 0; padding: 10px; }
-        
         .header { background: white; padding: 12px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 15px; position: sticky; top: 0; z-index: 1000; }
         .header-main { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
-        
         .filter-group { display: flex; gap: 6px; flex-wrap: wrap; }
         .filter-btn { padding: 8px 14px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 0.8rem; color: white; transition: 0.2s; }
         .filter-btn.inactive { opacity: 0.25; transform: scale(0.95); }
-        
         .calendar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; width: 100%; }
         .month-box { background: white; border-radius: 15px; padding: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-        
         .day { min-height: 95px; border: 1px solid #f0f0f0; border-radius: 8px; cursor: pointer; padding: 4px; display: flex; flex-direction: column; overflow: hidden; }
         .is-weekend { background: #f8f9fa !important; } 
-        
         .name-tag { font-size: 0.7rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 2px; text-align: center; color: white; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .event-tag { background: var(--EVENT); color: white; font-size: 0.7rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 4px; text-align: center; font-weight: bold; }
-
-        .bg-KGB200 { background: var(--KGB200); } .bg-KGB210 { background: var(--KGB210); }
-        .bg-KGB220 { background: var(--KGB220); } .bg-KGB250 { background: var(--KGB250); }
-        .bg-EVENT { background: var(--EVENT); }
-
         .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center; z-index:3000; }
-        .modal-content { 
-            background:white; padding: 20px; border-radius:20px; 
-            width: 92%; max-width: 480px; 
-            max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.2); 
-            box-sizing: border-box; 
-        }
-        
+        .modal-content { background:white; padding: 20px; border-radius:20px; width: 92%; max-width: 480px; max-height: 85vh; overflow-y: auto; box-sizing: border-box; }
         .staff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; }
         @media (max-width: 450px) { .staff-grid { grid-template-columns: 1fr; } }
-
-        /* 下拉選單顏色樣式修復 */
-        .select-box { padding: 10px; border-radius: 8px; font-size: 0.9rem; width: 100%; border: 1.5px solid #eee; font-weight: 500; outline: none; box-sizing: border-box; transition: 0.2s; }
+        .select-box { padding: 10px; border-radius: 8px; font-size: 0.9rem; width: 100%; border: 1.5px solid #eee; font-weight: 500; outline: none; box-sizing: border-box; }
         .sel-KGB200 { background-color: var(--KGB200-bg); border-color: var(--KGB200); }
         .sel-KGB210 { background-color: var(--KGB210-bg); border-color: var(--KGB210); }
         .sel-KGB220 { background-color: var(--KGB220-bg); border-color: var(--KGB220); }
         .sel-KGB250 { background-color: var(--KGB250-bg); border-color: var(--KGB250); }
-
         [v-cloak] { display: none; }
     </style>
 </head>
@@ -72,16 +53,16 @@
             </div>
         </div>
 
-        <div v-if="loadingData" style="text-align:center; padding: 100px; color:#666; font-weight:bold;">Loading...</div>
+        <div v-if="loadingData" style="text-align:center; padding: 100px; color:#666; font-weight:bold;">Loading Data...</div>
 
         <div v-else class="calendar-grid">
             <div v-for="m in 12" :key="m" class="month-box">
-                <div style="text-align:center; font-weight:bold; margin-bottom:10px;">{{ getMonthName(m) }} 2026</div>
+                <div style="text-align:center; font-weight:bold; margin-bottom:10px; font-size:1rem; color:#333;">{{ getMonthName(m) }} 2026</div>
                 <div class="days-grid">
-                    <div v-for="h in ['S','M','T','W','T','F','S']" style="text-align:center; font-size:0.7rem; color:#bbb;">{{h}}</div>
+                    <div v-for="h in ['S','M','T','W','T','F','S']" style="text-align:center; font-size:0.7rem; color:#bbb; padding-bottom:4px;">{{h}}</div>
                     <div v-for="b in getPadding(m)" :key="'p'+b"></div>
                     <div v-for="d in getDays(m)" :key="'d'+d" class="day" :class="{'is-weekend': isWeekend(m, d)}" @click="openModal(m, d)">
-                        <span style="font-size:0.75rem; color:#999;">{{ d }}</span>
+                        <span style="font-size:0.75rem; color:#999; margin-bottom:4px;">{{ d }}</span>
                         <div v-for="e in getDayEvents(m, d)" :key="e.Activity" class="event-tag">{{ e.Activity }}</div>
                         <div v-for="l in filteredLeaves(m, d)" :key="l.Name" :class="['name-tag', 'bg-'+l.Group]">{{ l.Name }}</div>
                     </div>
@@ -92,16 +73,16 @@
         <div v-if="showModal" class="modal" @click.self="showModal = false">
             <div class="modal-content">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                    <h2 style="margin:0; font-size:1.1rem;">📍 {{ getMonthName(selM) }} {{ selD }}, 2026</h2>
-                    <button @click="showModal = false" style="background:none; border:none; font-size:1.8rem; cursor:pointer;">&times;</button>
+                    <h2 style="margin:0; font-size:1.1rem; color:#333;">📍 {{ getMonthName(selM) }} {{ selD }}, 2026</h2>
+                    <button @click="showModal = false" style="background:none; border:none; font-size:1.8rem; cursor:pointer; color:#ccc; line-height:1;">&times;</button>
                 </div>
                 
-                <div style="margin-bottom: 15px; border:1px solid #f0f0f0; border-radius:12px;">
+                <div style="margin-bottom: 15px; background:#fdfdfd; border-radius:12px; border:1px solid #f0f0f0;">
                     <div v-for="l in getAllLeavesAtDate(selM, selD)" :key="l.Name" style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-bottom:1px solid #f9f9f9;">
-                        <span><b :style="{color: 'var(--'+l.Group+')'}">{{l.Name}}</b>: {{l.Status}}</span>
-                        <button v-if="canDelete(l)" @click="doDelete(l)" style="color:#ff6b6b; border:none; background:none; cursor:pointer;">✕</button>
+                        <span style="font-size:0.9rem;"><b :style="{color: 'var(--'+l.Group+')'}">{{l.Name}}</b>: {{l.Status}}</span>
+                        <button v-if="canDelete(l)" @click="doDelete(l)" style="color:#ff6b6b; border:none; background:none; cursor:pointer; font-weight:bold; padding:5px; font-size:1.1rem;">✕</button>
                     </div>
-                    <div v-if="getAllLeavesAtDate(selM, selD).length === 0" style="padding:15px; text-align:center; color:#ccc;">No records</div>
+                    <div v-if="getAllLeavesAtDate(selM, selD).length === 0" style="padding:15px; text-align:center; color:#ccc; font-size:0.85rem; font-style:italic;">No records today</div>
                 </div>
 
                 <div style="font-weight:bold; color:#666; margin-bottom:8px; font-size:0.8rem;">Quick Add:</div>
@@ -119,7 +100,7 @@
                     <select v-model="formStatus" class="select-box" style="margin-bottom:12px; border:1px solid #007bff; background:#f0f7ff;">
                         <option v-for="opt in ['上午休','下午休','全天休','上午外出','下午外出','全天外出','國外出差']" :key="opt">{{opt}}</option>
                     </select>
-                    <button style="width:100%; padding:12px; background:#007bff; color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer;" @click="saveLeave" :disabled="loading">
+                    <button style="width:100%; padding:12px; background:#007bff; color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer; font-size:0.9rem;" @click="saveLeave" :disabled="loading">
                         {{ loading ? 'Saving...' : 'Confirm' }}
                     </button>
                 </div>
@@ -129,7 +110,8 @@
 
     <script>
         const { createApp, ref, onMounted } = Vue;
-        const API = "https://script.google.com/macros/s/AKfycbyQ2pyXJZfAZVMA1SB8XJc2m3i4tdqTYJCwUa1KoGodr1tSwy_dfljN_CkGIGElA6Uo7Q/exec"; 
+        // 已更新為您最新的 URL
+        const API = "https://script.google.com/macros/s/AKfycbyQ2pyXJZfAZVMA1SB8XJc2m3i4tdqTYJCwUa1KoGodr1tSw_dfljN_CkGIGElA6Uo7Q/exec"; 
 
         createApp({
             setup() {
@@ -158,7 +140,6 @@
                         leaves.value = data.leaves || [];
                         events.value = data.events || [];
                         staff.value = data.staff || []; 
-                        console.log("Staff Data Loaded:", staff.value); // 偵錯用
                         loadingData.value = false;
                     } catch (e) { console.error("Fetch Error:", e); loadingData.value = false; }
                 };
@@ -167,7 +148,11 @@
                     if (!confirm(`Delete ${l.Name}'s record?`)) return;
                     loading.value = true;
                     try {
-                        await fetch(API, { method: "POST", mode: 'no-cors', body: JSON.stringify({ action: "delete", date: formatDateObj(l.Date), name: l.Name }) });
+                        await fetch(API, { 
+                            method: "POST", 
+                            mode: 'no-cors', 
+                            body: JSON.stringify({ action: "delete", date: formatDateObj(l.Date), name: l.Name }) 
+                        });
                         setTimeout(async () => { await fetchData(); loading.value = false; }, 1200);
                     } catch (e) { loading.value = false; }
                 };
