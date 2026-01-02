@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>2026 Tracker - EN/CH Mixed</title>
+    <title>2026 Tracker - Final Version</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
         :root { 
@@ -37,20 +37,16 @@
         .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center; z-index:3000; }
         .modal-content { 
             background:white; padding: 20px; border-radius:20px; 
-            width: 92%; max-width: 450px; 
+            width: 92%; max-width: 480px; 
             max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.2); 
             box-sizing: border-box; 
         }
         
         .staff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; }
-        @media (max-width: 400px) { .staff-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 450px) { .staff-grid { grid-template-columns: 1fr; } }
 
         .select-box { padding: 10px; border-radius: 8px; font-size: 0.9rem; width: 100%; border: 1.5px solid #eee; font-weight: 500; outline: none; box-sizing: border-box; }
-        .sel-KGB200 { background-color: var(--KGB200-bg); border-color: var(--KGB200); }
-        .sel-KGB210 { background-color: var(--KGB210-bg); border-color: var(--KGB210); }
-        .sel-KGB220 { background-color: var(--KGB220-bg); border-color: var(--KGB220); }
-        .sel-KGB250 { background-color: var(--KGB250-bg); border-color: var(--KGB250); }
-
+        
         [v-cloak] { display: none; }
     </style>
 </head>
@@ -71,7 +67,7 @@
             </div>
         </div>
 
-        <div v-if="loadingData" style="text-align:center; padding: 100px; color:#666; font-weight:bold;">Loading...</div>
+        <div v-if="loadingData" style="text-align:center; padding: 100px; color:#666; font-weight:bold;">Loading Data...</div>
 
         <div v-else class="calendar-grid">
             <div v-for="m in 12" :key="m" class="month-box">
@@ -106,8 +102,8 @@
                 <div style="font-weight:bold; color:#666; margin-bottom:8px; font-size:0.8rem;">Quick Add:</div>
                 <div class="staff-grid">
                     <div v-for="g in groups" :key="g.id">
-                        <label :style="{color: 'var(--'+g.id+')', fontSize:'0.7rem', fontWeight:'bold', display:'block', marginBottom:'3px'}">{{g.label}}</label>
-                        <select v-model="currentUserEmail" class="select-box" :class="'sel-'+g.id">
+                        <label :style="{color: 'var(--'+g.id+')', fontSize:'0.72rem', fontWeight:'bold', display:'block', marginBottom:'3px'}">{{g.label}}</label>
+                        <select v-model="currentUserEmail" class="select-box">
                             <option value="">-- Select --</option>
                             <option v-for="u in staff.filter(s => s.Group === g.id)" :key="u.Email" :value="u.Email">{{u.Name}}</option>
                         </select>
@@ -136,6 +132,8 @@
                 const searchQuery = ref(""); const activeGroup = ref(""); const loadingData = ref(true);
                 const currentUserEmail = ref(""); const showModal = ref(false); const loading = ref(false);
                 const selM = ref(1); const selD = ref(1); const formStatus = ref("上午休"); 
+                
+                // 部門完整名稱定義
                 const groups = [
                     { id: 'KGB200', label: 'KGB200 Tony' },
                     { id: 'KGB210', label: 'KGB210 Visual Design' },
@@ -178,6 +176,13 @@
                 return {
                     staff, leaves, events, searchQuery, activeGroup, currentUserEmail, showModal, loading, loadingData, selM, selD, formStatus, groups,
                     fetchData, doDelete,
+                    getMonthName: (m) => ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m],
+                    getDays: (m) => new Date(2026, m, 0).getDate(),
+                    getPadding: (m) => new Date(2026, m - 1, 1).getDay(),
+                    getDayEvents: (m, d) => {
+                        const target = `2026-${m}-${d}`;
+                        return events.value.filter(e => formatDateObj(e.Date) === target);
+                    },
                     filteredLeaves: (m, d) => {
                         const target = `2026-${m}-${d}`;
                         return leaves.value.filter(l => {
@@ -187,15 +192,11 @@
                             return dateMatch && groupMatch && searchMatch;
                         });
                     },
-                    getDayEvents: (m, d) => {
-                        const target = `2026-${m}-${d}`;
-                        return events.value.filter(e => formatDateObj(e.Date) === target);
-                    },
-                    openModal: (m, d) => { selM.value = m; selD.value = d; currentUserEmail.value = ""; showModal.value = true; },
                     getAllLeavesAtDate: (m, d) => {
                         const target = `2026-${m}-${d}`;
                         return leaves.value.filter(l => formatDateObj(l.Date) === target);
                     },
+                    openModal: (m, d) => { selM.value = m; selD.value = d; currentUserEmail.value = ""; showModal.value = true; },
                     saveLeave: async () => {
                         if(!currentUserEmail.value) return;
                         loading.value = true;
@@ -211,9 +212,6 @@
                         setTimeout(async () => { await fetchData(); showModal.value = false; loading.value = false; }, 1500);
                     },
                     isWeekend: (m, d) => [0, 6].includes(new Date(2026, m - 1, d).getDay()),
-                    getMonthName: (m) => ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m],
-                    getDays: (m) => new Date(2026, m, 0).getDate(),
-                    getPadding: (m) => new Date(2026, m - 1, 1).getDay(),
                     canDelete: (l) => {
                         const user = staff.value.find(u => u.Email === currentUserEmail.value);
                         const admins = ['Tony', 'Ben', 'Esther', 'Vivian'];
