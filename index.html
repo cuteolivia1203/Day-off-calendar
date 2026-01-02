@@ -55,7 +55,7 @@
                 </div>
                 <div style="display:flex; align-items:center; border:1px solid #ddd; border-radius:8px; overflow:hidden;">
                     <input type="text" v-model="searchQuery" style="border:none; padding:8px; width:110px; outline:none;" placeholder="Search Name...">
-                    <button @click="fetchData" style="background:#eee; border:none; padding:8px 10px; cursor:pointer;">Refresh ↻</button>
+                    <button @click="fetchData" style="background:#eee; border:none; padding:8px 10px; cursor:pointer;">Refresh</button>
                 </div>
             </div>
         </div>
@@ -117,21 +117,41 @@
 
     <script>
         const { createApp, ref, onMounted } = Vue;
-        const API = "https://script.google.com/macros/s/AKfycbyQ2pyXJZfAZVMA1SB8XJc2m3i4tdqTYJCwUa1KoGodr1tSwy_dfljN_CkGIGElA6Uo7Q/exec"; // Please update your URL here
+        const API = "https://script.google.com/macros/s/AKfycbyQ2pyXJZfAZVMA1SB8XJc2m3i4tdqTYJCwUa1KoGodr1tSwy_dfljN_CkGIGElA6Uo7Q/exec"; 
 
-        const ADMIN_EMAILS = ["Tony.Pan@acer.com", "Esther.Yu@acer.com", "Benjamin.Hsu@acer.com", "Vivian.Chiang@acer.com"];
+        const ADMIN_EMAILS = [
+            "Tony.Pan@acer.com", 
+            "Esther.Yu@acer.com", 
+            "Benjamin.Hsu@acer.com", 
+            "Vivian.Chiang@acer.com"
+        ];
 
         createApp({
             setup() {
-                const staff = ref([]); const leaves = ref([]); const events = ref([]);
-                const searchQuery = ref(""); const activeGroup = ref(""); const loadingData = ref(true);
-                const currentUserEmail = ref(""); const showModal = ref(false); const loading = ref(false);
-                const selM = ref(1); const selD = ref(1); const formStatus = ref("全天休"); 
-                const groups = [{id:'KGB200',label:'KGB200 Tony'},{id:'KGB210',label:'KGB210 Visual'},{id:'KGB220',label:'KGB220 Video'},{id:'KGB250',label:'KGB250 Ops'}];
+                const staff = ref([]);
+                const leaves = ref([]);
+                const events = ref([]);
+                const searchQuery = ref("");
+                const activeGroup = ref("");
+                const loadingData = ref(true);
+                const currentUserEmail = ref("");
+                const showModal = ref(false);
+                const loading = ref(false);
+                const selM = ref(1);
+                const selD = ref(1);
+                const formStatus = ref("全天休"); 
+                
+                const groups = [
+                    {id:'KGB200', label:'KGB200 Tony'},
+                    {id:'KGB210', label:'KGB210 Visual Design'},
+                    {id:'KGB220', label:'KGB220 Video'},
+                    {id:'KGB250', label:'KGB250 Creative Ops.'}
+                ];
 
                 const formatDate = (dateStr) => {
                     const d = new Date(dateStr);
-                    return isNaN(d.getTime()) ? "" : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                    if (isNaN(d.getTime())) return "";
+                    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                 };
 
                 const fetchData = async () => {
@@ -143,11 +163,20 @@
                         events.value = (data.events || []).map(e => ({ ...e, matchDate: formatDate(e.Date) }));
                         staff.value = data.staff || [];
                         loadingData.value = false;
-                    } catch (e) { loadingData.value = false; }
+                    } catch (e) {
+                        console.error(e);
+                        loadingData.value = false;
+                    }
                 };
 
                 const getTargetDate = (m, d) => `2026-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                const canDelete = (l) => currentUserEmail.value && (ADMIN_EMAILS.includes(currentUserEmail.value) || l.Email === currentUserEmail.value);
+
+                const canDelete = (l) => {
+                    if (!currentUserEmail.value) return false;
+                    const isAdmin = ADMIN_EMAILS.includes(currentUserEmail.value);
+                    const isOwner = l.Email === currentUserEmail.value;
+                    return isAdmin || isOwner;
+                };
 
                 onMounted(fetchData);
 
@@ -160,7 +189,11 @@
                     getDayEvents: (m, d) => events.value.filter(e => e.matchDate === getTargetDate(m, d)),
                     filteredLeaves: (m, d) => {
                         const t = getTargetDate(m, d);
-                        return leaves.value.filter(l => l.matchDate === t && (!activeGroup.value || l.Group === activeGroup.value) && (!searchQuery.value || l.Name.toLowerCase().includes(searchQuery.value.toLowerCase())));
+                        return leaves.value.filter(l => {
+                            return l.matchDate === t && 
+                                   (!activeGroup.value || l.Group === activeGroup.value) && 
+                                   (!searchQuery.value || l.Name.toLowerCase().includes(searchQuery.value.toLowerCase()));
+                        });
                     },
                     getAllLeavesAtDate: (m, d) => leaves.value.filter(l => l.matchDate === getTargetDate(m, d)),
                     openModal: (m, d) => { selM.value = m; selD.value = d; currentUserEmail.value = ""; showModal.value = true; },
@@ -168,14 +201,37 @@
                         if(!currentUserEmail.value) return;
                         loading.value = true;
                         const user = staff.value.find(u => u.Email === currentUserEmail.value);
-                        await fetch(API, { method: "POST", mode: 'no-cors', body: JSON.stringify({ action: "add", Date: getTargetDate(selM.value, selD.value), Name: user.Name, Group: user.Group, Status: formStatus.value }) });
-                        setTimeout(async () => { await fetchData(); showModal.value = false; loading.value = false; }, 1500);
+                        try {
+                            await fetch(API, { 
+                                method: "POST", 
+                                mode: 'no-cors', 
+                                body: JSON.stringify({ 
+                                    action: "add", 
+                                    Date: getTargetDate(selM.value, selD.value), 
+                                    Name: user.Name, 
+                                    Group: user.Group, 
+                                    Status: formStatus.value 
+                                }) 
+                            });
+                            setTimeout(async () => { await fetchData(); showModal.value = false; loading.value = false; }, 1500);
+                        } catch (e) { loading.value = false; }
                     },
                     doDelete: async (l) => {
                         if(!confirm(`Delete this record for ${l.Name}?`)) return;
                         loading.value = true;
-                        await fetch(API, { method: "POST", mode: 'no-cors', body: JSON.stringify({ action: "delete", date: l.matchDate, name: l.Name, operatorEmail: currentUserEmail.value }) });
-                        setTimeout(async () => { await fetchData(); loading.value = false; }, 1200);
+                        try {
+                            await fetch(API, { 
+                                method: "POST", 
+                                mode: 'no-cors', 
+                                body: JSON.stringify({ 
+                                    action: "delete", 
+                                    date: l.matchDate, 
+                                    name: l.Name, 
+                                    operatorEmail: currentUserEmail.value 
+                                }) 
+                            });
+                            setTimeout(async () => { await fetchData(); loading.value = false; }, 1200);
+                        } catch (e) { loading.value = false; }
                     },
                     isWeekend: (m, d) => [0, 6].includes(new Date(2026, m - 1, d).getDay())
                 };
@@ -184,4 +240,3 @@
     </script>
 </body>
 </html>
-
