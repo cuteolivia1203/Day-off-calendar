@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>2026 Tracker Final V5</title>
+    <title>2026 Tracker Final V6</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
         :root { 
             --KGB200: #ff6b6b; --KGB210: #4ecdc4; --KGB220: #feca57; --KGB250: #54a0ff; 
-            --EVENT: #8e44ad; /* 深紫色 */
+            --EVENT: #8e44ad; 
             --KGB200-bg: #fff1f1; --KGB210-bg: #e6fffa; --KGB220-bg: #fffbeb; --KGB250-bg: #ebf8ff;
         }
         body { font-family: -apple-system, "Microsoft JhengHei", sans-serif; background: #f4f7f9; margin: 0; padding: 10px; }
@@ -34,11 +34,10 @@
         .bg-KGB220 { background: var(--KGB220); } .bg-KGB250 { background: var(--KGB250); }
         .bg-EVENT { background: var(--EVENT); }
 
-        /* 修正手機版裁切問題 */
         .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center; z-index:3000; }
         .modal-content { 
             background:white; padding: 20px; border-radius:20px; 
-            width: 92%; max-width: 450px; /* 改為百分比防止裁切 */
+            width: 92%; max-width: 450px; 
             max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.2); 
             box-sizing: border-box; 
         }
@@ -117,7 +116,7 @@
                 
                 <div v-if="currentUserEmail" style="margin-top:15px; padding-top:15px; border-top:2px dashed #eee;">
                     <select v-model="formStatus" class="select-box" style="margin-bottom:12px; border:1px solid #007bff; background:#f0f7ff;">
-                        <option v-for="opt in ['全天休','上午休','下午休','早上外拍','下午外拍','全天外拍','出差']" :key="opt">{{opt}}</option>
+                        <option v-for="opt in ['上午休','下午休','全天休','上午外出','下午外出','全天外出','國外出差']" :key="opt">{{opt}}</option>
                     </select>
                     <button style="width:100%; padding:12px; background:#007bff; color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer; font-size:0.9rem;" @click="saveLeave" :disabled="loading">
                         {{ loading ? 'Saving...' : 'Confirm' }}
@@ -129,6 +128,7 @@
 
     <script>
         const { createApp, ref, onMounted } = Vue;
+        // 1. 更新後的 API URL
         const API = "https://script.google.com/macros/s/AKfycbyQ2pyXJZfAZVMA1SB8XJc2m3i4tdqTYJCwUa1KoGodr1tSwy_dfljN_CkGIGElA6Uo7Q/exec"; 
 
         createApp({
@@ -136,7 +136,7 @@
                 const staff = ref([]); const leaves = ref([]); const events = ref([]);
                 const searchQuery = ref(""); const activeGroup = ref(""); const loadingData = ref(true);
                 const currentUserEmail = ref(""); const showModal = ref(false); const loading = ref(false);
-                const selM = ref(1); const selD = ref(1); const formStatus = ref("全天休");
+                const selM = ref(1); const selD = ref(1); const formStatus = ref("上午休"); // 預設值調整
                 const groups = [
                     { id: 'KGB200', label: 'KGB200 Tony' },
                     { id: 'KGB210', label: 'KGB210 Visual Design' },
@@ -152,7 +152,6 @@
                 const fetchData = async () => {
                     loadingData.value = true;
                     try {
-                        // 重點：加上時間戳防止讀取緩存資料
                         const res = await fetch(API + "?t=" + Date.now());
                         const data = await res.json();
                         leaves.value = data.leaves || [];
@@ -171,11 +170,7 @@
                             mode: 'no-cors', 
                             body: JSON.stringify({ action: "delete", date: formatDateObj(l.Date), name: l.Name }) 
                         });
-                        // 刪除後稍微等待，確保後端完成寫入再刷新
-                        setTimeout(async () => { 
-                            await fetchData(); 
-                            loading.value = false;
-                        }, 1200);
+                        setTimeout(async () => { await fetchData(); loading.value = false; }, 1200);
                     } catch (e) { alert("刪除失敗"); loading.value = false; }
                 };
 
