@@ -3,7 +3,7 @@
 <head>
    <meta charset="UTF-8">
    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-   <title>2026 Team Tracker</title>
+   <title>KGB200 Calendar</title>
    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
    <style>
        :root { 
@@ -54,7 +54,7 @@
    <div id="app" v-cloak>
        <div class="header">
            <div class="header-main">
-                <h3 style="margin:0;">🗓️ 2026 Tracker</h3>
+                <h3 style="margin:0;">🗓️ KGB200 Calendar</h3>
                 <div class="filter-group">
                     <button class="filter-btn" style="background:#666" :class="{inactive: activeGroup !== ''}" @click="activeGroup = ''">All</button>
                     <button v-for="g in groups" :key="g.id" :class="['filter-btn', 'bg-'+g.id, {inactive: activeGroup !== '' && activeGroup !== g.id}]" @click="activeGroup = g.id">{{ g.label }}</button>
@@ -261,3 +261,4 @@
    </script>
 </body>
 </html>
+
