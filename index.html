@@ -1,52 +1,59 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>2026 Team Tracker</title>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <style>
-        :root { 
-            --KGB200: #ff6b6b; --KGB210: #4ecdc4; --KGB220: #feca57; --KGB250: #54a0ff; 
-            --EVENT: #8e44ad; 
-            --KGB200-bg: #fff1f1; --KGB210-bg: #e6fffa; --KGB220-bg: #fffbeb; --KGB250-bg: #ebf8ff;
-        }
-        body { font-family: -apple-system, sans-serif; background: #f4f7f9; margin: 0; padding: 10px; color: #333; }
-        .header { background: white; padding: 12px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 15px; position: sticky; top: 0; z-index: 1000; }
-        .header-main { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
-        .filter-group { display: flex; gap: 6px; flex-wrap: wrap; }
-        .filter-btn { padding: 8px 14px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 0.8rem; color: white; transition: 0.2s; }
-        .filter-btn.inactive { opacity: 0.25; transform: scale(0.95); }
-        .bg-KGB200 { background: var(--KGB200); } .bg-KGB210 { background: var(--KGB210); }
-        .bg-KGB220 { background: var(--KGB220); } .bg-KGB250 { background: var(--KGB250); }
-        .bg-EVENT { background: var(--EVENT); }
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+   <title>2026 Team Tracker</title>
+   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+   <style>
+       :root { 
+           --KGB200: #ff6b6b; --KGB210: #4ecdc4; --KGB220: #feca57; --KGB250: #54a0ff; 
+           --EVENT: #8e44ad; 
+           --KGB200-bg: #fff1f1; --KGB210-bg: #e6fffa; --KGB220-bg: #fffbeb; --KGB250-bg: #ebf8ff;
+           /* 新增：定義休假與外出的顏色變數 */
+           --COLOR-LEAVE: #aaaaaa; 
+           --COLOR-OUT: #4caf50;
+       }
+       body { font-family: -apple-system, sans-serif; background: #f4f7f9; margin: 0; padding: 10px; color: #333; }
+       .header { background: white; padding: 12px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 15px; position: sticky; top: 0; z-index: 1000; }
+       .header-main { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+       .filter-group { display: flex; gap: 6px; flex-wrap: wrap; }
+       .filter-btn { padding: 8px 14px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 0.8rem; color: white; transition: 0.2s; }
+       .filter-btn.inactive { opacity: 0.25; transform: scale(0.95); }
+       .bg-KGB200 { background: var(--KGB200); } .bg-KGB210 { background: var(--KGB210); }
+       .bg-KGB220 { background: var(--KGB220); } .bg-KGB250 { background: var(--KGB250); }
+       .bg-EVENT { background: var(--EVENT); }
 
-        .calendar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; width: 100%; }
-        .month-box { background: white; border-radius: 15px; padding: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-        .day { min-height: 95px; border: 1px solid #f0f0f0; border-radius: 8px; cursor: pointer; padding: 4px; display: flex; flex-direction: column; overflow: hidden; background: #fff; }
-        .is-weekend { background: #f8f9fa !important; } 
-        
-        .name-tag { font-size: 0.7rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 2px; text-align: center; color: white; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .event-tag { background: var(--EVENT); color: white; font-size: 0.7rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 4px; text-align: center; font-weight: bold; }
-        
-        .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center; z-index:3000; }
-        .modal-content { background:white; padding: 20px; border-radius:20px; width: 92%; max-width: 480px; max-height: 85vh; overflow-y: auto; box-sizing: border-box; }
-        .staff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; }
-        .select-box { padding: 10px; border-radius: 8px; font-size: 0.9rem; width: 100%; border: 1.5px solid #eee; font-weight: 500; outline: none; }
-        .sel-KGB200 { background-color: var(--KGB200-bg); border-color: var(--KGB200); }
-        .sel-KGB210 { background-color: var(--KGB210-bg); border-color: var(--KGB210); }
-        .sel-KGB220 { background-color: var(--KGB220-bg); border-color: var(--KGB220); }
-        .sel-KGB250 { background-color: var(--KGB250-bg); border-color: var(--KGB250); }
-        
-        .delete-btn { color: #ff6b6b; border: none; background: none; cursor: pointer; font-weight: bold; padding: 4px; font-size: 1.1rem; }
-        [v-cloak] { display: none; }
-    </style>
+       /* 修改：新增背景顏色樣式 [cite: 3, 4, 6] */
+       .bg-leave { background: var(--COLOR-LEAVE) !important; }
+       .bg-out { background: var(--COLOR-OUT) !important; }
+ 
+       .calendar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; width: 100%; }
+       .month-box { background: white; border-radius: 15px; padding: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+       .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+       .day { min-height: 95px; border: 1px solid #f0f0f0; border-radius: 8px; cursor: pointer; padding: 4px; display: flex; flex-direction: column; overflow: hidden; background: #fff; }
+       .is-weekend { background: #f8f9fa !important; } 
+       
+       .name-tag { font-size: 0.7rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 2px; text-align: center; color: white; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+       .event-tag { background: var(--EVENT); color: white; font-size: 0.7rem; padding: 2px 4px; border-radius: 4px; margin-bottom: 4px; text-align: center; font-weight: bold; }
+       
+       .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center; z-index:3000; }
+       .modal-content { background:white; padding: 20px; border-radius:20px; width: 92%; max-width: 480px; max-height: 85vh; overflow-y: auto; box-sizing: border-box; }
+       .staff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; }
+       .select-box { padding: 10px; border-radius: 8px; font-size: 0.9rem; width: 100%; border: 1.5px solid #eee; font-weight: 500; outline: none; }
+       .sel-KGB200 { background-color: var(--KGB200-bg); border-color: var(--KGB200); }
+       .sel-KGB210 { background-color: var(--KGB210-bg); border-color: var(--KGB210); }
+       .sel-KGB220 { background-color: var(--KGB220-bg); border-color: var(--KGB220); }
+       .sel-KGB250 { background-color: var(--KGB250-bg); border-color: var(--KGB250); }
+       
+       .delete-btn { color: #ff6b6b; border: none; background: none; cursor: pointer; font-weight: bold; padding: 4px; font-size: 1.1rem; }
+       [v-cloak] { display: none; }
+   </style>
 </head>
 <body>
-    <div id="app" v-cloak>
-        <div class="header">
-            <div class="header-main">
+   <div id="app" v-cloak>
+       <div class="header">
+           <div class="header-main">
                 <h3 style="margin:0;">🗓️ 2026 Tracker</h3>
                 <div class="filter-group">
                     <button class="filter-btn" style="background:#666" :class="{inactive: activeGroup !== ''}" @click="activeGroup = ''">All</button>
@@ -57,13 +64,13 @@
                     <input type="text" v-model="searchQuery" style="border:none; padding:8px; width:110px; outline:none;" placeholder="Search Name...">
                     <button @click="fetchData" style="background:#eee; border:none; padding:8px 10px; cursor:pointer;">Refresh</button>
                 </div>
-            </div>
-        </div>
-
-        <div v-if="loadingData" style="text-align:center; padding: 100px; color:#999;">Loading...</div>
-
-        <div v-else class="calendar-grid">
-            <div v-for="m in 12" :key="m" class="month-box">
+           </div>
+       </div>
+ 
+       <div v-if="loadingData" style="text-align:center; padding: 100px; color:#999;">Loading...</div>
+ 
+       <div v-else class="calendar-grid">
+           <div v-for="m in 12" :key="m" class="month-box">
                 <div style="text-align:center; font-weight:bold; margin-bottom:10px;">{{ getMonthName(m) }} 2026</div>
                 <div class="days-grid">
                     <div v-for="h in ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']" style="text-align:center; font-size:0.6rem; color:#bbb; padding-bottom:5px;">{{h}}</div>
@@ -71,14 +78,19 @@
                     <div v-for="d in getDays(m)" :key="'d'+d" class="day" :class="{'is-weekend': isWeekend(m, d)}" @click="openModal(m, d)">
                         <span style="font-size:0.75rem; color:#999;">{{ d }}</span>
                         <div v-for="e in getDayEvents(m, d)" :key="e.Activity" class="event-tag">{{ e.Activity }}</div>
-                        <div v-for="l in filteredLeaves(m, d)" :key="l.Name + l.Date" :class="['name-tag', 'bg-'+l.Group]">{{ l.Name }}</div>
+                        
+                        <div v-for="l in filteredLeaves(m, d)" :key="l.Name + l.Date" 
+                             class="name-tag" 
+                             :class="l.Status.includes('休') ? 'bg-leave' : 'bg-out'">
+                             {{ l.Name }}
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <div v-if="showModal" class="modal" @click.self="showModal = false">
-            <div class="modal-content">
+           </div>
+       </div>
+ 
+       <div v-if="showModal" class="modal" @click.self="showModal = false">
+           <div class="modal-content">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                     <h2 style="margin:0; font-size:1.1rem;">📍 {{ getMonthName(selM) }} {{ selD }}, 2026</h2>
                     <button @click="showModal = false" style="background:none; border:none; font-size:1.8rem; cursor:pointer; color:#ccc;">&times;</button>
@@ -86,12 +98,21 @@
                 
                 <div style="margin-bottom: 20px; background:#fdfdfd; border-radius:12px; border:1px solid #f0f0f0; overflow:hidden;">
                     <div v-for="l in getAllLeavesAtDate(selM, selD)" :key="l.Name + l.Status" style="display:flex; justify-content:space-between; align-items:center; padding:10px 15px; border-bottom:1px solid #f9f9f9;">
-                        <span><b :style="{color: 'var(--'+l.Group+')'}">{{l.Name}}</b>: {{l.Status}}</span>
+                        
+                        <span>
+                            <b :style="{color: (l.Status.includes('外出') || l.Status.includes('出差')) ? 'var(--COLOR-OUT)' : 'black'}">
+                                {{l.Name}}
+                            </b>: 
+                            <span :style="{color: (l.Status.includes('外出') || l.Status.includes('出差')) ? 'var(--COLOR-OUT)' : 'black'}">
+                                {{l.Status}}
+                            </span>
+                        </span>
+
                         <button v-if="canDelete(l)" @click="doDelete(l)" class="delete-btn">✕</button>
                     </div>
                     <div v-if="getAllLeavesAtDate(selM, selD).length === 0" style="padding:20px; text-align:center; color:#ccc; font-style:italic; font-size:0.9rem;">No records today</div>
                 </div>
-
+ 
                 <div style="font-weight:bold; color:#888; margin-bottom:10px; font-size:0.85rem;">Quick Add:</div>
                 <div class="staff-grid">
                     <div v-for="g in groups" :key="g.id">
@@ -111,23 +132,23 @@
                         {{ loading ? 'Saving...' : 'Confirm' }}
                     </button>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        const { createApp, ref, onMounted } = Vue;
-        const API = "https://script.google.com/macros/s/AKfycbyQ2pyXJZfAZVMA1SB8XJc2m3i4tdqTYJCwUa1KoGodr1tSwy_dfljN_CkGIGElA6Uo7Q/exec"; 
-
-        const ADMIN_EMAILS = [
-            "Tony.Pan@acer.com", 
-            "Esther.Yu@acer.com", 
-            "Benjamin.Hsu@acer.com", 
-            "Vivian.Chiang@acer.com"
-        ];
-
-        createApp({
-            setup() {
+           </div>
+       </div>
+   </div>
+ 
+   <script>
+       const { createApp, ref, onMounted } = Vue;
+       const API = "https://script.google.com/macros/s/AKfycbyQ2pyXJZfAZVMA1SB8XJc2m3i4tdqTYJCwUa1KoGodr1tSwy_dfljN_CkGIGElA6Uo7Q/exec";
+ 
+       const ADMIN_EMAILS = [
+           "Tony.Pan@acer.com", 
+           "Esther.Yu@acer.com", 
+           "Benjamin.Hsu@acer.com", 
+           "Vivian.Chiang@acer.com"
+       ];
+ 
+       createApp({
+           setup() {
                 const staff = ref([]);
                 const leaves = ref([]);
                 const events = ref([]);
@@ -147,13 +168,13 @@
                     {id:'KGB220', label:'KGB220 Video'},
                     {id:'KGB250', label:'KGB250 Creative Ops.'}
                 ];
-
+ 
                 const formatDate = (dateStr) => {
                     const d = new Date(dateStr);
                     if (isNaN(d.getTime())) return "";
                     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                 };
-
+ 
                 const fetchData = async () => {
                     loadingData.value = true;
                     try {
@@ -168,18 +189,18 @@
                         loadingData.value = false;
                     }
                 };
-
+ 
                 const getTargetDate = (m, d) => `2026-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-
+ 
                 const canDelete = (l) => {
                     if (!currentUserEmail.value) return false;
                     const isAdmin = ADMIN_EMAILS.includes(currentUserEmail.value);
                     const isOwner = l.Email === currentUserEmail.value;
                     return isAdmin || isOwner;
                 };
-
+ 
                 onMounted(fetchData);
-
+ 
                 return {
                     staff, leaves, events, searchQuery, activeGroup, currentUserEmail, showModal, loading, loadingData, selM, selD, formStatus, groups,
                     fetchData, canDelete,
@@ -191,14 +212,14 @@
                         const t = getTargetDate(m, d);
                         return leaves.value.filter(l => {
                             return l.matchDate === t && 
-                                   (!activeGroup.value || l.Group === activeGroup.value) && 
-                                   (!searchQuery.value || l.Name.toLowerCase().includes(searchQuery.value.toLowerCase()));
+                                  (!activeGroup.value || l.Group === activeGroup.value) && 
+                                  (!searchQuery.value || l.Name.toLowerCase().includes(searchQuery.value.toLowerCase()));
                         });
                     },
                     getAllLeavesAtDate: (m, d) => leaves.value.filter(l => l.matchDate === getTargetDate(m, d)),
                     openModal: (m, d) => { selM.value = m; selD.value = d; currentUserEmail.value = ""; showModal.value = true; },
                     saveLeave: async () => {
-                        if(!currentUserEmail.value) return;
+                       if(!currentUserEmail.value) return;
                         loading.value = true;
                         const user = staff.value.find(u => u.Email === currentUserEmail.value);
                         try {
@@ -227,7 +248,7 @@
                                     action: "delete", 
                                     date: l.matchDate, 
                                     name: l.Name, 
-                                    operatorEmail: currentUserEmail.value 
+                                   operatorEmail: currentUserEmail.value 
                                 }) 
                             });
                             setTimeout(async () => { await fetchData(); loading.value = false; }, 1200);
@@ -235,8 +256,8 @@
                     },
                     isWeekend: (m, d) => [0, 6].includes(new Date(2026, m - 1, d).getDay())
                 };
-            }
-        }).mount('#app');
-    </script>
+           }
+       }).mount('#app');
+   </script>
 </body>
 </html>
