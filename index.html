@@ -32,6 +32,7 @@
             --outing-green-bg: #15803d; /* 綠背景 */
             --tag-event-bg: #8b5cf6;   /* Events 紫色 */
 
+            --weekend-bg: #eef2f6;     /* 週末20%淺灰底色 (比白深、比休假灰淺) */
             --today-orange: #FF8C00;
         }
 
@@ -95,32 +96,52 @@
         .month-box {
             background: #ffffff; border-radius: 12px; border: 1px solid var(--border-color);
             padding: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); display: flex; flex-direction: column;
+            overflow: hidden;
         }
         .month-title {
             text-align: center; font-weight: 700; font-size: 0.9rem; color: #1e293b; margin-bottom: 8px;
         }
         .days-header {
-            display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 3px;
+            display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; margin-bottom: 3px;
         }
         .day-label {
             text-align: center; font-size: 0.62rem; font-weight: 600; color: #94a3b8;
         }
-
-        .month-days-grid {
-            display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
+        .day-label.weekend-label {
+            color: #64748b; font-weight: 700;
         }
-        /* 自動伸展高度，人名多時自動拉長、不壓扁 */
+
+        /* 嚴格等寬 7 欄，絕不被任何長字串撐寬變形 */
+        .month-days-grid {
+            display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px;
+        }
+
+        /* 星期一至五：預設白底 */
         .day-cell {
             min-height: 54px;
             height: auto;
             border: 1px solid #f1f5f9; border-radius: 5px;
             padding: 2px 2px 4px 2px;
             display: flex; flex-direction: column; align-items: center;
-            background: #fafbfc; position: relative; font-size: 0.7rem; cursor: pointer;
+            background: #ffffff; position: relative; font-size: 0.7rem; cursor: pointer;
             transition: background 0.15s;
+            overflow: hidden;
+            box-sizing: border-box;
         }
         .day-cell:hover { background: #f8fafc; border-color: #cbd5e1; }
-        .day-cell.empty { border: none; background: transparent; cursor: default; min-height: 54px; }
+        
+        /* 星期六、星期日：20% 灰色背景區隔 */
+        .day-cell.is-weekend {
+            background: var(--weekend-bg) !important;
+            border-color: #e2e8f0;
+        }
+        .day-cell.is-weekend:hover {
+            background: #e2e8f0 !important;
+        }
+
+        .day-cell.empty {
+            border: none; background: transparent !important; cursor: default; min-height: 54px;
+        }
         .day-number { font-weight: 700; font-size: 0.7rem; color: #475569; margin-bottom: 3px; }
 
         /* Today Glowing Orange Border */
@@ -130,18 +151,20 @@
             box-shadow: 0 0 8px rgba(255, 140, 0, 0.45) !important;
         }
 
-        /* Tags Container */
+        /* Tags Container: 自動排列不擠壓、不壓扁 */
         .tags-container {
             width: 100%; display: flex; flex-direction: column; gap: 2px;
         }
+        /* 人名與活動標籤：長文字自動換行折行，絕不撐破日曆格子 */
         .person-tag {
-            width: 100%; font-size: 0.6rem; padding: 2px 2px; border-radius: 3px;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            width: 100%; font-size: 0.58rem; padding: 2px 2px; border-radius: 3px;
+            white-space: normal; word-break: break-all;
             text-align: center; font-weight: 700; color: #ffffff !important;
             cursor: pointer; line-height: 1.15;
+            box-sizing: border-box;
         }
-        .tag-leave  { background-color: var(--leave-gray-bg) !important; }  /* 灰底白字 */
-        .tag-outing { background-color: var(--outing-green-bg) !important; } /* 綠底白字 */
+        .tag-leave  { background-color: var(--leave-gray-bg) !important; }  /* 淺30%灰底白字 */
+        .tag-outing { background-color: var(--outing-green-bg) !important; } /* 外出綠底白字 */
         .tag-event  { background-color: var(--tag-event-bg) !important; }   /* 紫色 */
 
         /* Modal Styles */
@@ -380,7 +403,7 @@
         }
 
         function renderMonthCalendar(year, month) {
-            const firstDayIndex = new Date(year, month - 1, 1).getDay();
+            const firstDayIndex = new Date(year, month - 1, 1).getDay(); // 0 is Sun, 6 is Sat
             const daysInMonth = new Date(year, month, 0).getDate();
             const title = `${monthNames[month - 1]} ${year}`;
 
@@ -388,22 +411,29 @@
             <div class="month-box">
                 <div class="month-title">${title}</div>
                 <div class="days-header">
-                    <div class="day-label">Sun</div><div class="day-label">Mon</div>
+                    <div class="day-label weekend-label">Sun</div><div class="day-label">Mon</div>
                     <div class="day-label">Tue</div><div class="day-label">Wed</div>
                     <div class="day-label">Thu</div><div class="day-label">Fri</div>
-                    <div class="day-label">Sat</div>
+                    <div class="day-label weekend-label">Sat</div>
                 </div>
                 <div class="month-days-grid">
             `;
 
+            // 空白補位 (週日為0)
             for (let i = 0; i < firstDayIndex; i++) {
-                html += `<div class="day-cell empty"></div>`;
+                const isWk = (i === 0);
+                html += `<div class="day-cell empty ${isWk ? 'is-weekend' : ''}"></div>`;
             }
 
             for (let d = 1; d <= daysInMonth; d++) {
+                const currentDayOfWeek = (firstDayIndex + d - 1) % 7; // 0=Sun, 6=Sat
+                const isWeekend = (currentDayOfWeek === 0 || currentDayOfWeek === 6);
                 const dateKey = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
                 const isToday = (dateKey === todayStr);
-                const cellClass = isToday ? 'day-cell is-today' : 'day-cell';
+
+                let cellClass = 'day-cell';
+                if (isWeekend) cellClass += ' is-weekend';
+                if (isToday) cellClass += ' is-today';
 
                 const matched = leavesData.filter(item => {
                     const matchDate = (item.date === dateKey);
@@ -429,7 +459,7 @@
             return html;
         }
 
-        // 渲染主網格 (保證打開頁面絕不空白)
+        // 渲染主網格 (從本月展開至 2027 年底)
         function renderAll() {
             const mainGrid = document.getElementById('mainCalendarGrid');
             if (!mainGrid) return;
@@ -443,9 +473,7 @@
             }
         }
 
-        // ==========================================
-        // 純原生動態注入腳本讀取 Gviz，零外部依賴、永不卡死
-        // ==========================================
+        // Google Sheets Gviz 數據接收
         let rawLeaves = [];
         let rawEvents = [];
 
@@ -495,12 +523,10 @@
         }
 
         function fetchSheetsDirect() {
-            // 讀取 Leaves
             const s1 = document.createElement("script");
             s1.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=responseHandler:handleLeavesGviz&sheet=Leaves`;
             document.body.appendChild(s1);
 
-            // 讀取 Events
             const s2 = document.createElement("script");
             s2.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=responseHandler:handleEventsGviz&sheet=Events`;
             document.body.appendChild(s2);
@@ -611,11 +637,9 @@
             renderAll();
         }
 
-        // 1. 下拉選單配置
+        // 初始化
         setupDropdowns();
-        // 2. 立即繪製月曆框架（確保打開瞬間絕無白畫面）
         renderAll();
-        // 3. 取得 Google 試算表資料注入
         fetchSheetsDirect();
     </script>
 </body>
