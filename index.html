@@ -1,339 +1,387 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
+# update_calendar.py
+# Run this script to generate the updated index.html for your GitHub repository.
+
+HTML_CONTENT = """<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KGB200 Calendar</title>
     <style>
         :root {
-            --bg-color: #f7f9fc;
-            --card-bg: #ffffff;
-            --text-main: #2d3748;
-            --border-color: #edf2f7;
-            --c-kgb200: #ff6b6b; /* 紅 */
-            --c-kgb210: #20c997; /* 綠 */
-            --c-kgb220: #fcc419; /* 黃 */
-            --c-kgb250: #339af0; /* 藍 */
-            --c-event: #845ef7;  /* 紫 */
-            --today-orange: #FF8C00; /* 今日橘框 */
+            --bg-color: #f8fafc;
+            --border-color: #e2e8f0;
+            --text-color: #334155;
+            
+            /* Group Colors matching your original mockup */
+            --color-all: #475569;
+            --color-200: #ff6b6b;
+            --color-210: #4ecdc4;
+            --color-220: #feca57;
+            --color-250: #54a0ff;
+            --color-event: #a855f7;
+            --today-orange: #FF8C00;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background: var(--bg-color); color: var(--text-main); padding: 16px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background: var(--bg-color); color: var(--text-color); padding: 16px 24px; }
 
-        /* 頂部 Header & Filter */
-        .top-navbar {
-            background: white; border-radius: 12px; padding: 10px 20px;
-            display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.03); margin-bottom: 18px; gap: 12px;
+        /* Top Bar */
+        .top-bar {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;
+            background: #ffffff; padding: 12px 24px; border-radius: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 20px; gap: 12px;
         }
-        .nav-left { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.15rem; }
-        .filter-group { display: flex; flex-wrap: wrap; gap: 8px; }
-        .badge {
-            padding: 5px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; cursor: pointer; color: white; border: none;
-            transition: transform 0.1s, opacity 0.2s;
+        .app-title { font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: 8px; color: #1e293b; }
+        .filter-container { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .filter-btn {
+            border: none; border-radius: 20px; padding: 6px 14px; font-size: 0.8rem; font-weight: 700;
+            color: white; cursor: pointer; transition: transform 0.1s, opacity 0.2s;
         }
-        .badge:hover { opacity: 0.88; transform: translateY(-1px); }
-        .badge.active { outline: 2px solid #2d3748; outline-offset: 1px; }
-        .badge-all { background: #4a5568; }
-        .badge-200 { background: var(--c-kgb200); }
-        .badge-210 { background: var(--c-kgb210); }
-        .badge-220 { background: var(--c-kgb220); color: #333; }
-        .badge-250 { background: var(--c-kgb250); }
+        .filter-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .filter-btn.active { outline: 2.5px solid #1e293b; outline-offset: 1px; }
         
-        .nav-right { display: flex; gap: 8px; }
-        .search-box {
-            padding: 6px 12px; border: 1px solid #cbd5e0; border-radius: 8px; font-size: 0.85rem; outline: none; width: 160px;
-        }
-        .btn-refresh {
-            background: #edf2f7; border: 1px solid #cbd5e0; border-radius: 8px; padding: 6px 12px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
-        }
+        .btn-all { background: var(--color-all); }
+        .btn-200 { background: var(--color-200); }
+        .btn-210 { background: var(--color-210); }
+        .btn-220 { background: var(--color-220); color: #1e293b; }
+        .btn-250 { background: var(--color-250); }
+        .btn-event { background: var(--color-event); }
 
-        /* 版面配置：左側歷史按鈕 + 右側向下滾動的月曆網格 */
-        .layout-container { display: flex; gap: 16px; align-items: flex-start; }
-        
-        /* 左側過往月份收合區 */
-        .past-sidebar {
-            width: 95px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px;
+        .search-input {
+            border: 1px solid var(--border-color); border-radius: 8px; padding: 6px 12px;
+            font-size: 0.85rem; outline: none; width: 160px;
         }
-        .past-title { font-size: 0.75rem; font-weight: 700; color: #718096; text-align: center; margin-bottom: 2px; }
-        .past-btn {
-            background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px;
-            padding: 7px 6px; font-size: 0.78rem; font-weight: 600; color: #4a5568;
-            cursor: pointer; text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,0.02);
-            transition: all 0.2s;
+        .refresh-btn {
+            border: 1px solid var(--border-color); background: #ffffff; border-radius: 8px;
+            padding: 6px 14px; font-size: 0.85rem; font-weight: 600; cursor: pointer; color: #475569;
         }
-        .past-btn:hover { background: #edf2f7; border-color: #cbd5e0; color: #2b6cb0; }
+        .refresh-btn:hover { background: #f1f5f9; }
 
-        /* 右側主月曆網格：固定一排 4 個月，向下折行滾動 */
-        .main-calendar-grid {
+        /* Main Layout */
+        .content-layout { display: flex; gap: 20px; align-items: flex-start; }
+
+        /* Left Sidebar: Archived Past Months */
+        .sidebar-past {
+            width: 95px; flex-shrink: 0; display: flex; flex-direction: column; gap: 8px;
+            max-height: calc(100vh - 120px); overflow-y: auto; padding-right: 2px;
+        }
+        .past-month-btn {
+            background: #ffffff; border: 1px solid var(--border-color); border-radius: 8px;
+            padding: 7px 4px; font-size: 0.78rem; font-weight: 600; color: #64748b;
+            text-align: center; cursor: pointer; transition: all 0.15s;
+        }
+        .past-month-btn:hover { background: #f1f5f9; color: #1e293b; border-color: #cbd5e1; }
+
+        /* Right Grid: 4 Columns per Row, Vertical Scroll */
+        .calendar-grid-wrapper {
             flex-grow: 1;
             display: grid;
-            grid-template-columns: repeat(4, 1fr); /* 一排4個月 */
+            grid-template-columns: repeat(4, minmax(220px, 1fr));
             gap: 16px;
         }
-        @media (max-width: 1400px) {
-            .main-calendar-grid { grid-template-columns: repeat(3, 1fr); } /* 螢幕較小時一排3個月 */
+        @media (max-width: 1300px) {
+            .calendar-grid-wrapper { grid-template-columns: repeat(3, minmax(200px, 1fr)); }
         }
-        @media (max-width: 1000px) {
-            .main-calendar-grid { grid-template-columns: repeat(2, 1fr); }
+        @media (max-width: 990px) {
+            .calendar-grid-wrapper { grid-template-columns: repeat(2, minmax(190px, 1fr)); }
         }
-        @media (max-width: 650px) {
-            .main-calendar-grid { grid-template-columns: 1fr; }
+        @media (max-width: 600px) {
+            .content-layout { flex-direction: column; }
+            .sidebar-past { width: 100%; flex-direction: row; flex-wrap: wrap; max-height: none; }
+            .calendar-grid-wrapper { grid-template-columns: 1fr; }
         }
-        
-        /* 單個月曆卡片 */
-        .month-card {
-            background: white; border-radius: 12px; border: 1px solid #e2e8f0;
-            padding: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+
+        /* Monthly Calendar Card */
+        .month-box {
+            background: #ffffff; border-radius: 14px; border: 1px solid var(--border-color);
+            padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); display: flex; flex-direction: column;
         }
-        .month-header { text-align: center; font-weight: 700; font-size: 0.95rem; margin-bottom: 6px; }
-        
-        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
-        .day-label { text-align: center; font-size: 0.65rem; color: #a0aec0; font-weight: 600; padding-bottom: 2px; }
-        
-        /* 日曆格子 (可點擊) */
-        .cell {
-            min-height: 52px; border: 1px solid #edf2f7; border-radius: 6px;
+        .month-title {
+            text-align: center; font-weight: 700; font-size: 0.95rem; color: #1e293b; margin-bottom: 10px;
+        }
+        .days-header {
+            display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 4px;
+        }
+        .day-label {
+            text-align: center; font-size: 0.65rem; font-weight: 600; color: #94a3b8; padding-bottom: 2px;
+        }
+
+        .month-days-grid {
+            display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
+        }
+        .day-cell {
+            aspect-ratio: 1 / 1.35; border: 1px solid #f1f5f9; border-radius: 6px;
             padding: 2px; display: flex; flex-direction: column; align-items: center;
             background: #fafbfc; position: relative; font-size: 0.72rem; cursor: pointer;
-            transition: background 0.15s, border-color 0.15s;
+            overflow: hidden; transition: background 0.15s, border-color 0.15s;
         }
-        .cell:hover:not(.empty) { background: #edf2f7; border-color: #cbd5e0; }
-        .cell.empty { border: none; background: transparent; cursor: default; }
-        .date-num { font-weight: 700; margin-bottom: 2px; font-size: 0.75rem; }
+        .day-cell:hover { background: #f8fafc; border-color: #cbd5e1; }
+        .day-cell.empty { border: none; background: transparent; cursor: default; }
+        .day-number { font-weight: 700; font-size: 0.72rem; color: #475569; margin-bottom: 2px; }
 
-        /* 【今日醒目橘框】 */
-        .cell.is-today {
+        /* The Today Glowing Orange Border */
+        .day-cell.is-today {
             border: 2px solid var(--today-orange) !important;
             background: #fffaf0 !important;
             box-shadow: 0 0 8px rgba(255, 140, 0, 0.45) !important;
         }
 
-        /* 標籤小色塊 */
-        .tag {
-            width: 96%; font-size: 0.62rem; padding: 1px 3px; border-radius: 3px;
+        /* Original Pill Badges for Leave Names */
+        .tags-container {
+            width: 100%; display: flex; flex-direction: column; gap: 2px; overflow-y: auto;
+        }
+        .person-tag {
+            width: 100%; font-size: 0.6rem; padding: 1.5px 2px; border-radius: 3px;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-            margin-bottom: 2px; text-align: center; font-weight: 600;
+            text-align: center; font-weight: 700; color: #ffffff;
+            cursor: pointer; background: #94a3b8; /* Default grey badge */
         }
-        .tag-200 { background: #ffe3e3; color: #c92a2a; border-left: 2.5px solid var(--c-kgb200); }
-        .tag-210 { background: #e6fcf5; color: #0ca678; border-left: 2.5px solid var(--c-kgb210); }
-        .tag-220 { background: #fff9db; color: #f08c00; border-left: 2.5px solid var(--c-kgb220); }
-        .tag-250 { background: #e7f5ff; color: #1971c2; border-left: 2.5px solid var(--c-kgb250); }
-        .tag-event { background: #f3f0ff; color: #6741d9; border-left: 2.5px solid var(--c-event); }
+        /* Group Specific Badges (preserving your mockup styles) */
+        .tag-KGB200 { background: var(--color-200); }
+        .tag-KGB210 { background: #10b981; }
+        .tag-KGB220 { background: #f59e0b; color: #ffffff; }
+        .tag-KGB250 { background: var(--color-250); }
+        .tag-Event { background: var(--color-event); }
+        .tag-default { background: #94a3b8; }
 
-        /* Modal 彈出視窗 */
-        .modal-overlay {
+        /* Modals */
+        .modal-mask {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;
+            background: rgba(15, 23, 42, 0.45); z-index: 999; justify-content: center; align-items: center;
         }
-        .modal-box {
-            background: white; border-radius: 14px; padding: 22px; width: 92%; max-width: 440px;
-            box-shadow: 0 12px 30px rgba(0,0,0,0.18); max-height: 90vh; overflow-y: auto;
+        .modal-window {
+            background: #ffffff; border-radius: 16px; padding: 22px; width: 90%; max-width: 420px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15); max-height: 90vh; overflow-y: auto;
         }
-        .modal-title { font-size: 1.1rem; font-weight: bold; margin-bottom: 12px; }
-        .form-group { margin-bottom: 12px; }
-        .form-group label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; color: #4a5568; }
-        .form-control { width: 100%; padding: 8px 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 0.9rem; }
+        .modal-heading { font-weight: 700; font-size: 1.1rem; color: #1e293b; margin-bottom: 16px; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 0.8rem; font-weight: 700; color: #64748b; margin-bottom: 4px; text-transform: uppercase; }
+        .form-group select, .form-group input {
+            width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.9rem; outline: none;
+        }
+        .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+        .btn-submit { flex: 1; background: #2563eb; color: white; border: none; border-radius: 8px; padding: 9px; font-weight: 600; cursor: pointer; }
+        .btn-cancel { flex: 1; background: #f1f5f9; color: #475569; border: none; border-radius: 8px; padding: 9px; font-weight: 600; cursor: pointer; }
         
-        .leave-item {
-            display: flex; justify-content: space-between; align-items: center;
-            background: #f7fafc; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px;
-            border-left: 4px solid #cbd5e0;
+        .record-card {
+            background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 12px;
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
         }
-        .btn-del { background: #ff6b6b; color: white; border: none; border-radius: 4px; padding: 3px 8px; font-size: 0.75rem; cursor: pointer; }
-        .btn-submit { background: #3182ce; color: white; border: none; border-radius: 6px; padding: 9px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 8px; }
-        .btn-close { background: #e2e8f0; color: #4a5568; border: none; border-radius: 6px; padding: 8px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 6px; }
+        .btn-delete-rec {
+            background: #ef4444; color: white; border: none; border-radius: 6px; padding: 4px 10px; font-size: 0.75rem; font-weight: 600; cursor: pointer;
+        }
     </style>
 </head>
 <body>
 
-    <!-- 頂部導覽 -->
-    <div class="top-navbar">
-        <div class="nav-left">📅 KGB200 Calendar</div>
-        <div class="filter-group">
-            <button class="badge badge-all active" onclick="filterGroup('ALL', this)">All</button>
-            <button class="badge badge-200" onclick="filterGroup('KGB200', this)">KGB200 Tony</button>
-            <button class="badge badge-210" onclick="filterGroup('KGB210', this)">KGB210 Visual</button>
-            <button class="badge badge-220" onclick="filterGroup('KGB220', this)">KGB220 Video</button>
-            <button class="badge badge-250" onclick="filterGroup('KGB250', this)">KGB250 Ops</button>
+    <!-- Header Navigation -->
+    <div class="top-bar">
+        <div class="app-title">🗓️ KGB200 Calendar</div>
+        <div class="filter-container">
+            <button class="filter-btn btn-all active" onclick="setGroupFilter('ALL', this)">All</button>
+            <button class="filter-btn btn-200" onclick="setGroupFilter('KGB200', this)">KGB200 Tony</button>
+            <button class="filter-btn btn-210" onclick="setGroupFilter('KGB210', this)">KGB210 Visual Design</button>
+            <button class="filter-btn btn-220" onclick="setGroupFilter('KGB220', this)">KGB220 Video</button>
+            <button class="filter-btn btn-250" onclick="setGroupFilter('KGB250', this)">KGB250 Creative Ops</button>
+            <button class="filter-btn btn-event" onclick="setGroupFilter('Event', this)">Events</button>
         </div>
-        <div class="nav-right">
-            <input type="text" id="searchInput" class="search-box" placeholder="搜尋人名..." oninput="handleSearch()">
-            <button class="btn-refresh" onclick="location.reload()">Refresh</button>
+        <div style="display: flex; gap: 8px;">
+            <input type="text" id="searchInput" class="search-input" placeholder="Search Name..." oninput="handleSearch()">
+            <button class="refresh-btn" onclick="window.location.reload()">Refresh</button>
         </div>
     </div>
 
-    <!-- 主要版面 -->
-    <div class="layout-container">
-        <!-- 左側：已過月份收納按鈕 -->
-        <div class="past-sidebar" id="pastContainer">
-            <div class="past-title">已過月份</div>
-        </div>
+    <!-- Main Layout -->
+    <div class="content-layout">
+        <!-- Left: Archived Past Months -->
+        <div class="sidebar-past" id="pastMonthsContainer"></div>
 
-        <!-- 右側：主月曆區 (一排4個月向下排列) -->
-        <div class="main-calendar-grid" id="mainContainer"></div>
+        <!-- Right: Active & Future Months (4 Cols, Vertical Scroll) -->
+        <div class="calendar-grid-wrapper" id="mainCalendarGrid"></div>
     </div>
 
-    <!-- 彈出視窗 (查看詳情與填寫假單) -->
-    <div class="modal-overlay" id="dateModal" onclick="if(event.target===this) closeModal('dateModal')">
-        <div class="modal-box">
-            <div class="modal-title" id="dateModalTitle">2026-10-05 休假狀況</div>
-            
-            <!-- 當天已有請假清單 -->
-            <div id="dayLeaveList" style="margin-bottom: 16px;"></div>
-
-            <!-- 新增請假表單 -->
-            <hr style="margin: 12px 0; border: none; border-top: 1px solid #edf2f7;">
-            <div style="font-weight:700; font-size:0.9rem; margin-bottom:8px;">➕ 新增請假 / 外出日程</div>
-            
+    <!-- Modal 1: Add Record -->
+    <div class="modal-mask" id="addModal" onclick="if(event.target===this) closeAddModal()">
+        <div class="modal-window">
+            <div class="modal-heading">Add Off / Outing</div>
             <div class="form-group">
-                <label>選擇同仁：</label>
-                <select id="userSelect" class="form-control" onchange="autoSelectGroup()">
-                    <option value="">-- 請選擇同仁 --</option>
+                <label>Date</label>
+                <input type="text" id="addDateInput" readonly style="background:#f1f5f9;">
+            </div>
+            <div class="form-group">
+                <label>Member</label>
+                <select id="staffSelect" onchange="onStaffSelected()">
+                    <option value="">-- Select Member --</option>
                 </select>
             </div>
-
             <div class="form-group">
-                <label>所屬組別：</label>
-                <select id="groupSelect" class="form-control">
-                    <option value="KGB200">🔴 KGB200</option>
-                    <option value="KGB210">🟢 KGB210</option>
-                    <option value="KGB220">🟡 KGB220</option>
-                    <option value="KGB250">🔵 KGB250</option>
-                    <option value="Event">🟣 團隊公務/行程 (Event)</option>
-                </select>
+                <label>Group</label>
+                <input type="text" id="groupInput" readonly style="background:#f1f5f9;">
             </div>
-
             <div class="form-group">
-                <label>備註 (事由/選填)：</label>
-                <input type="text" id="noteInput" class="form-control" placeholder="例: 特休 / 外出開會">
+                <label>Note / Reason (Optional)</label>
+                <input type="text" id="reasonInput" placeholder="e.g. Vacation, Half-day, Meeting">
             </div>
-
-            <button class="btn-submit" onclick="submitLeave()">送出登記</button>
-            <button class="btn-close" onclick="closeModal('dateModal')">關閉</button>
+            <div class="modal-actions">
+                <button class="btn-submit" onclick="submitLeave()">Confirm</button>
+                <button class="btn-cancel" onclick="closeAddModal()">Cancel</button>
+            </div>
         </div>
     </div>
 
-    <!-- 歷史月份檢視視窗 -->
-    <div class="modal-overlay" id="historyModal" onclick="if(event.target===this) closeModal('historyModal')">
-        <div class="modal-box" style="max-width: 360px;">
-            <div id="historyContent"></div>
-            <button class="btn-close" onclick="closeModal('historyModal')">關閉</button>
+    <!-- Modal 2: View & Manage Day Records -->
+    <div class="modal-mask" id="detailModal" onclick="if(event.target===this) closeDetailModal()">
+        <div class="modal-window">
+            <div class="modal-heading" id="detailModalHeading">Day Records</div>
+            <div id="detailRecordsList"></div>
+            <button class="btn-submit" style="margin-top:12px; width:100%;" onclick="openAddFromDetail()">+ Add Person for this Date</button>
+            <button class="btn-cancel" style="margin-top:8px; width:100%;" onclick="closeDetailModal()">Close</button>
+        </div>
+    </div>
+
+    <!-- Modal 3: Show Past Month Calendar -->
+    <div class="modal-mask" id="historyModal" onclick="if(event.target===this) closeHistoryModal()">
+        <div class="modal-window" style="max-width: 380px;">
+            <div id="historyCalendarWrapper"></div>
+            <button class="btn-cancel" style="margin-top:14px; width:100%;" onclick="closeHistoryModal()">Close</button>
         </div>
     </div>
 
     <script>
-        // 1. 25 位同仁名冊 (Richard, TsaiMing 已移至 KGB220)
-        const staffList = [
+        // 1. Staff Members (Richard & TsaiMing are in KGB220)
+        const STAFF_MEMBERS = [
             { name: "Tony", group: "KGB200" },
-            { name: "Esther", group: "KGB210" }, { name: "Jasmin", group: "KGB210" }, { name: "Sophie", group: "KGB210" },
-            { name: "Edna", group: "KGB210" }, { name: "Sandy", group: "KGB210" }, { name: "Mars", group: "KGB210" },
-            { name: "Helen", group: "KGB210" }, { name: "Ann", group: "KGB210" }, { name: "Harry", group: "KGB210" },
-            { name: "Ming", group: "KGB210" }, { name: "Dino", group: "KGB210" },
-            { name: "Ben", group: "KGB220" }, { name: "Kiwi", group: "KGB220" }, { name: "Brade", group: "KGB220" },
-            { name: "Alice", group: "KGB220" }, { name: "Emma", group: "KGB220" }, { name: "Danny", group: "KGB220" },
-            { name: "Cooper", group: "KGB220" }, { name: "Richard", group: "KGB220" }, { name: "TsaiMing", group: "KGB220" },
-            { name: "Vivian", group: "KGB250" }, { name: "Sylvia", group: "KGB250" }, { name: "Kathryn", group: "KGB250" },
+            { name: "Esther", group: "KGB210" },
+            { name: "Jasmin", group: "KGB210" },
+            { name: "Sophie", group: "KGB210" },
+            { name: "Edna", group: "KGB210" },
+            { name: "Sandy", group: "KGB210" },
+            { name: "Mars", group: "KGB210" },
+            { name: "Helen", group: "KGB210" },
+            { name: "Ann", group: "KGB210" },
+            { name: "Harry", group: "KGB210" },
+            { name: "Ming", group: "KGB210" },
+            { name: "Dino", group: "KGB210" },
+            { name: "Ben", group: "KGB220" },
+            { name: "Kiwi", group: "KGB220" },
+            { name: "Brade", group: "KGB220" },
+            { name: "Alice", group: "KGB220" },
+            { name: "Emma", group: "KGB220" },
+            { name: "Danny", group: "KGB220" },
+            { name: "Cooper", group: "KGB220" },
+            { name: "Richard", group: "KGB220" },
+            { name: "TsaiMing", group: "KGB220" },
+            { name: "Vivian", group: "KGB250" },
+            { name: "Sylvia", group: "KGB250" },
+            { name: "Kathryn", group: "KGB250" },
             { name: "Jeff", group: "KGB250" }
         ];
 
-        // 2. 本地儲存資料讀取 (保持使用者修改不遺失)
-        const STORAGE_KEY = 'KGB_LEAVES_DATA_V2';
-        let defaultLeaves = [
-            { id: 1, name: "Tony", group: "KGB200", date: "2026-10-02", note: "特休" },
-            { id: 2, name: "Esther", group: "KGB210", date: "2026-10-15", note: "事假" },
-            { id: 3, name: "Sandy", group: "KGB210", date: "2026-11-04", note: "特休" },
-            { id: 4, name: "Ben", group: "KGB220", date: "2026-11-18", note: "休假" },
-            { id: 5, name: "Richard", group: "KGB220", date: "2026-12-08", note: "外出" },
-            { id: 6, name: "TsaiMing", group: "KGB220", date: "2026-12-08", note: "休假" },
-            { id: 7, name: "Jeff", group: "KGB250", date: "2027-01-08", note: "補休" },
-            { id: 8, name: "Vivian", group: "KGB250", date: "2027-02-12", note: "特休" },
-            { id: 9, name: "Q4季會", group: "Event", date: "2026-12-25", note: "全員行程" }
+        // 2. Initial Sample Leave Records
+        const DEFAULT_RECORDS = [
+            { id: "1", name: "Tony", group: "KGB200", date: "2026-10-02", note: "Annual Leave" },
+            { id: "2", name: "Esther", group: "KGB210", date: "2026-10-15", note: "Leave" },
+            { id: "3", name: "Sandy", group: "KGB210", date: "2026-11-04", note: "Leave" },
+            { id: "4", name: "Ben", group: "KGB220", date: "2026-11-18", note: "Outing" },
+            { id: "5", name: "Richard", group: "KGB220", date: "2026-12-08", note: "Leave" },
+            { id: "6", name: "TsaiMing", group: "KGB220", date: "2026-12-08", note: "Leave" },
+            { id: "7", name: "Jeff", group: "KGB250", date: "2027-01-08", note: "Leave" },
+            { id: "8", name: "Vivian", group: "KGB250", date: "2027-02-12", note: "Leave" },
+            { id: "9", name: "Q4季會", group: "Event", date: "2026-12-25", note: "Event" },
+            { id: "10", name: "228補假", group: "Event", date: "2027-02-27", note: "Public Holiday" }
         ];
 
-        let leavesData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || defaultLeaves;
-        function saveLeaves() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(leavesData));
+        // Persistent storage via localStorage to ensure no data is lost
+        let leavesData = JSON.parse(localStorage.getItem("kgb_calendar_leaves_data"));
+        if (!leavesData || leavesData.length === 0) {
+            leavesData = DEFAULT_RECORDS;
+            saveData();
         }
 
+        function saveData() {
+            localStorage.setItem("kgb_calendar_leaves_data", JSON.stringify(leavesData));
+        }
+
+        // 3. States & Date Utils
         let currentFilter = 'ALL';
         let searchQuery = '';
-        let selectedDateStr = '';
+        let activeDate = '';
 
         const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
         const today = new Date();
         const curY = today.getFullYear();
-        const curM = today.getMonth() + 1; // 1-12
+        const curM = today.getMonth() + 1; // 1 to 12
         const todayStr = `${curY}-${String(curM).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
 
-        // 初始化人員選單
-        function initUserSelect() {
-            const userSel = document.getElementById('userSelect');
-            userSel.innerHTML = '<option value="">-- 請選擇同仁 --</option>';
-            staffList.forEach(u => {
-                const opt = document.createElement('option');
-                opt.value = u.name;
-                opt.textContent = `${u.name} (${u.group})`;
-                userSel.appendChild(opt);
+        function populateStaffOptions() {
+            const select = document.getElementById("staffSelect");
+            select.innerHTML = '<option value="">-- Select Member --</option>';
+            STAFF_MEMBERS.forEach(s => {
+                const opt = document.createElement("option");
+                opt.value = s.name;
+                opt.textContent = `${s.name} (${s.group})`;
+                select.appendChild(opt);
             });
         }
 
-        function autoSelectGroup() {
-            const name = document.getElementById('userSelect').value;
-            const staff = staffList.find(s => s.name === name);
-            if (staff) {
-                document.getElementById('groupSelect').value = staff.group;
-            }
+        function onStaffSelected() {
+            const selectedName = document.getElementById("staffSelect").value;
+            const staff = STAFF_MEMBERS.find(s => s.name === selectedName);
+            document.getElementById("groupInput").value = staff ? staff.group : '';
         }
 
-        // 建立單月月曆 HTML
-        function buildMonthHTML(year, month) {
-            let firstDay = new Date(year, month - 1, 1).getDay(); // 0 is Sun
-            let totalDays = new Date(year, month, 0).getDate();
-            let monthLabel = `${monthNames[month - 1]} ${year}`;
+        // Build single month calendar HTML (Used in both Main Grid & Past Month Modal)
+        function renderMonthCalendar(year, month) {
+            const firstDayIndex = new Date(year, month - 1, 1).getDay(); // Sunday = 0
+            const daysInMonth = new Date(year, month, 0).getDate();
+            const title = `${monthNames[month - 1]} ${year}`;
 
             let html = `
-            <div class="month-card">
-                <div class="month-header">${monthLabel}</div>
-                <div class="cal-grid">
+            <div class="month-box">
+                <div class="month-title">${title}</div>
+                <div class="days-header">
                     <div class="day-label">Sun</div><div class="day-label">Mon</div>
                     <div class="day-label">Tue</div><div class="day-label">Wed</div>
                     <div class="day-label">Thu</div><div class="day-label">Fri</div>
                     <div class="day-label">Sat</div>
+                </div>
+                <div class="month-days-grid">
             `;
 
-            for (let i = 0; i < firstDay; i++) {
-                html += `<div class="cell empty"></div>`;
+            for (let i = 0; i < firstDayIndex; i++) {
+                html += `<div class="day-cell empty"></div>`;
             }
 
-            for (let d = 1; d <= totalDays; d++) {
-                let dStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                let isToday = (dStr === todayStr);
-                let cellClass = isToday ? 'cell is-today' : 'cell';
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateKey = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const isToday = (dateKey === todayStr);
+                const cellClass = isToday ? 'day-cell is-today' : 'day-cell';
 
-                // 篩選當天符合條件之休假
-                let matches = leavesData.filter(item => {
-                    let matchDate = (item.date === dStr);
-                    let matchGrp = (currentFilter === 'ALL' || item.group === currentFilter);
-                    let matchKw = (!searchQuery || item.name.toLowerCase().includes(searchQuery));
-                    return matchDate && matchGrp && matchKw;
+                // Query records for this day
+                const matched = leavesData.filter(item => {
+                    const matchDate = (item.date === dateKey);
+                    const matchGroup = (currentFilter === 'ALL' || item.group === currentFilter);
+                    const matchSearch = (!searchQuery || item.name.toLowerCase().includes(searchQuery));
+                    return matchDate && matchGroup && matchSearch;
                 });
 
-                let tagsHtml = '';
-                matches.forEach(m => {
-                    let tagCls = 'tag-event';
-                    if (m.group === 'KGB200') tagCls = 'tag-200';
-                    else if (m.group === 'KGB210') tagCls = 'tag-210';
-                    else if (m.group === 'KGB220') tagCls = 'tag-220';
-                    else if (m.group === 'KGB250') tagCls = 'tag-250';
-                    tagsHtml += `<div class="tag ${tagCls}">${m.name}</div>`;
+                let tagsMarkup = '';
+                matched.forEach(item => {
+                    let grpClass = 'tag-default';
+                    if (item.group === 'KGB200') grpClass = 'tag-KGB200';
+                    else if (item.group === 'KGB210') grpClass = 'tag-KGB210';
+                    else if (item.group === 'KGB220') grpClass = 'tag-KGB220';
+                    else if (item.group === 'KGB250') grpClass = 'tag-KGB250';
+                    else if (item.group === 'Event') grpClass = 'tag-Event';
+
+                    tagsMarkup += `<div class="person-tag ${grpClass}" title="${item.name}: ${item.note || ''}">${item.name}</div>`;
                 });
 
                 html += `
-                <div class="${cellClass}" onclick="openDateModal('${dStr}')" title="點擊查看/填寫休假">
-                    <span class="date-num">${d}</span>
-                    ${tagsHtml}
+                <div class="${cellClass}" onclick="handleDateClick('${dateKey}')">
+                    <span class="day-number">${d}</span>
+                    <div class="tags-container">${tagsMarkup}</div>
                 </div>`;
             }
 
@@ -341,130 +389,156 @@
             return html;
         }
 
-        // 渲染畫面
-        function render() {
-            const pastContainer = document.getElementById('pastContainer');
-            const mainContainer = document.getElementById('mainContainer');
-            pastContainer.innerHTML = '<div class="past-title">已過月份</div>';
-            mainContainer.innerHTML = '';
+        // Render Page Layout
+        function renderAll() {
+            const pastContainer = document.getElementById('pastMonthsContainer');
+            const mainGrid = document.getElementById('mainCalendarGrid');
+            pastContainer.innerHTML = '';
+            mainGrid.innerHTML = '';
 
-            // 1. 動態計算過去月份 (2026年1月至「當前月份之前」)
-            let sy = 2026, sm = 1;
-            while (sy < curY || (sy === curY && sm < curM)) {
-                let y = sy, m = sm;
-                let btn = document.createElement('button');
-                btn.className = 'past-btn';
-                btn.textContent = `${monthNames[m-1]} ${y}`;
+            // (1) Dynamic Past Months: automatically folds past months into the sidebar
+            let startYear = 2026, startMonth = 1;
+            while (startYear < curY || (startYear === curY && startMonth < curM)) {
+                const y = startYear, m = startMonth;
+                const btn = document.createElement('button');
+                btn.className = 'past-month-btn';
+                btn.textContent = `${monthNames[m - 1]} ${y}`;
                 btn.onclick = () => openHistoryModal(y, m);
                 pastContainer.appendChild(btn);
 
-                sm++;
-                if (sm > 12) { sm = 1; sy++; }
+                startMonth++;
+                if (startMonth > 12) { startMonth = 1; startYear++; }
             }
 
-            // 2. 主月曆展示：由「當前月份」一路排列至 2027 年 12 月
-            let my = curY, mm = curM;
-            while (my < 2027 || (my === 2027 && mm <= 12)) {
-                mainContainer.innerHTML += buildMonthHTML(my, mm);
-                mm++;
-                if (mm > 12) { mm = 1; my++; }
+            // (2) Right Main Grid: Displays current month through full year 2027
+            let mainYear = curY, mainMonth = curM;
+            while (mainYear < 2027 || (mainYear === 2027 && mainMonth <= 12)) {
+                mainGrid.innerHTML += renderMonthCalendar(mainYear, mainMonth);
+                mainMonth++;
+                if (mainMonth > 12) { mainMonth = 1; mainYear++; }
             }
         }
 
-        // 點擊日期格子：開啟詳情與填寫彈出視窗
-        function openDateModal(dateStr) {
-            selectedDateStr = dateStr;
-            document.getElementById('dateModalTitle').textContent = `📅 ${dateStr} 請假與日程狀況`;
-            
-            // 載入當天已有請假紀錄
-            const dayRecords = leavesData.filter(d => d.date === dateStr);
-            const listEl = document.getElementById('dayLeaveList');
-            if (dayRecords.length === 0) {
-                listEl.innerHTML = '<div style="color:#a0aec0; font-size:0.85rem; text-align:center; padding:8px;">當日暫無請假記錄</div>';
+        // Day Click Handler: Show detail if records exist, otherwise open add dialog
+        function handleDateClick(dateStr) {
+            activeDate = dateStr;
+            const records = leavesData.filter(item => item.date === dateStr);
+            if (records.length > 0) {
+                openDetailModal(dateStr, records);
             } else {
-                listEl.innerHTML = dayRecords.map(r => `
-                    <div class="leave-item" style="border-left-color:${getGroupColor(r.group)}">
-                        <div>
-                            <strong>${r.name}</strong> <span style="font-size:0.8rem; color:#718096;">(${r.group})</span>
-                            ${r.note ? `<div style="font-size:0.75rem; color:#4a5568;">備註: ${r.note}</div>` : ''}
-                        </div>
-                        <button class="btn-del" onclick="deleteLeave(${r.id})">取消/刪除</button>
-                    </div>
-                `).join('');
+                openAddModal(dateStr);
             }
-
-            document.getElementById('noteInput').value = '';
-            document.getElementById('dateModal').style.display = 'flex';
         }
 
-        function getGroupColor(group) {
-            if (group === 'KGB200') return '#ff6b6b';
-            if (group === 'KGB210') return '#20c997';
-            if (group === 'KGB220') return '#fcc419';
-            if (group === 'KGB250') return '#339af0';
-            return '#845ef7';
+        // Add Modal
+        function openAddModal(dateStr) {
+            activeDate = dateStr;
+            document.getElementById("addDateInput").value = dateStr;
+            document.getElementById("staffSelect").value = '';
+            document.getElementById("groupInput").value = '';
+            document.getElementById("reasonInput").value = '';
+            document.getElementById("addModal").style.display = "flex";
+        }
+        function closeAddModal() {
+            document.getElementById("addModal").style.display = "none";
         }
 
-        // 新增請假送出
         function submitLeave() {
-            const user = document.getElementById('userSelect').value;
-            const group = document.getElementById('groupSelect').value;
-            const note = document.getElementById('noteInput').value.trim();
+            const name = document.getElementById("staffSelect").value;
+            const group = document.getElementById("groupInput").value;
+            const note = document.getElementById("reasonInput").value.trim();
 
-            if (!user && group !== 'Event') {
-                alert('請先選擇同仁姓名！');
+            if (!name) {
+                alert("Please select a member.");
                 return;
             }
 
-            const newRecord = {
-                id: Date.now(),
-                name: user || '團隊行程',
+            leavesData.push({
+                id: String(Date.now()),
+                name: name,
                 group: group,
-                date: selectedDateStr,
+                date: activeDate,
                 note: note
-            };
+            });
 
-            leavesData.push(newRecord);
-            saveLeaves();
-            render();
-            openDateModal(selectedDateStr); // 刷新彈出視窗
+            saveData();
+            closeAddModal();
+            renderAll();
         }
 
-        // 刪除/取消請假
-        function deleteLeave(id) {
-            if (confirm("確定要取消此筆休假嗎？")) {
+        // Detail Modal
+        function openDetailModal(dateStr, records) {
+            document.getElementById("detailModalHeading").textContent = `Records on ${dateStr}`;
+            const listContainer = document.getElementById("detailRecordsList");
+            listContainer.innerHTML = '';
+
+            records.forEach(rec => {
+                const row = document.createElement("div");
+                row.className = "record-card";
+                row.innerHTML = `
+                    <div>
+                        <strong style="font-size:0.95rem;">${rec.name}</strong>
+                        <span style="font-size:0.8rem; color:#64748b; margin-left:6px;">(${rec.group})</span>
+                        <div style="font-size:0.8rem; color:#475569; margin-top:2px;">Note: ${rec.note || 'None'}</div>
+                    </div>
+                    <button class="btn-delete-rec" onclick="deleteRecord('${rec.id}')">Delete</button>
+                `;
+                listContainer.appendChild(row);
+            });
+
+            document.getElementById("detailModal").style.display = "flex";
+        }
+        function closeDetailModal() {
+            document.getElementById("detailModal").style.display = "none";
+        }
+        function openAddFromDetail() {
+            closeDetailModal();
+            openAddModal(activeDate);
+        }
+
+        function deleteRecord(id) {
+            if (confirm("Are you sure you want to delete this record?")) {
                 leavesData = leavesData.filter(item => item.id !== id);
-                saveLeaves();
-                render();
-                openDateModal(selectedDateStr);
+                saveData();
+                closeDetailModal();
+                renderAll();
             }
         }
 
-        // 檢視歷史月份 (帶入紀錄)
+        // Past Month Modal
         function openHistoryModal(year, month) {
-            document.getElementById('historyContent').innerHTML = buildMonthHTML(year, month);
-            document.getElementById('historyModal').style.display = 'flex';
+            document.getElementById("historyCalendarWrapper").innerHTML = renderMonthCalendar(year, month);
+            document.getElementById("historyModal").style.display = "flex";
+        }
+        function closeHistoryModal() {
+            document.getElementById("historyModal").style.display = "none";
         }
 
-        function closeModal(id) {
-            document.getElementById(id).style.display = 'none';
-        }
-
-        function filterGroup(grp, el) {
-            currentFilter = grp;
-            document.querySelectorAll('.filter-group .badge').forEach(b => b.classList.remove('active'));
-            el.classList.add('active');
-            render();
+        // Filters & Search
+        function setGroupFilter(group, element) {
+            currentFilter = group;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            element.classList.add('active');
+            renderAll();
         }
 
         function handleSearch() {
-            searchQuery = document.getElementById('searchInput').value.trim().toLowerCase();
-            render();
+            searchQuery = document.getElementById("searchInput").value.trim().toLowerCase();
+            renderAll();
         }
 
-        // 程式啟動
-        initUserSelect();
-        render();
+        // Run
+        populateStaffOptions();
+        renderAll();
     </script>
 </body>
 </html>
+"""
+
+def generate_index():
+    with open("index.html", "w", encoding="utf-8") as f:
+        f.write(HTML_CONTENT)
+    print("SUCCESS: index.html has been generated with original English styling, today border, 4-column layout, and modal record fixes.")
+
+if __name__ == "__main__":
+    generate_index()
