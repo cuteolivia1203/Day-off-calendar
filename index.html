@@ -28,7 +28,7 @@
             --qa-250-lbl: #3b82f6;
 
             /* Button & Tag Styling: 休假淺30%質感灰，外出綠底白字 */
-            --leave-gray-bg: #8e9ba8;  /* 淺約30%的溫和中灰 */
+            --leave-gray-bg: #8e9ba8;  /* 淺約30%溫和灰 */
             --outing-green-bg: #15803d; /* 綠背景 */
             --tag-event-bg: #8b5cf6;   /* Events 紫色 */
 
@@ -109,7 +109,7 @@
         .month-days-grid {
             display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
         }
-        /* 格子自動依內容彈性拉長，不壓扁人名 */
+        /* 自動伸展高度，人名多時自動拉長、不壓扁 */
         .day-cell {
             min-height: 54px;
             height: auto;
@@ -130,7 +130,7 @@
             box-shadow: 0 0 8px rgba(255, 140, 0, 0.45) !important;
         }
 
-        /* Tags Container: 自動排列不擠壓 */
+        /* Tags Container */
         .tags-container {
             width: 100%; display: flex; flex-direction: column; gap: 2px;
         }
@@ -140,8 +140,8 @@
             text-align: center; font-weight: 700; color: #ffffff !important;
             cursor: pointer; line-height: 1.15;
         }
-        .tag-leave  { background-color: var(--leave-gray-bg) !important; }  /* 淺30%灰底白字 */
-        .tag-outing { background-color: var(--outing-green-bg) !important; } /* 外出綠底白字 */
+        .tag-leave  { background-color: var(--leave-gray-bg) !important; }  /* 灰底白字 */
+        .tag-outing { background-color: var(--outing-green-bg) !important; } /* 綠底白字 */
         .tag-event  { background-color: var(--tag-event-bg) !important; }   /* 紫色 */
 
         /* Modal Styles */
@@ -181,7 +181,7 @@
             color: #ef4444; cursor: pointer; border: none; background: transparent; font-size: 0.85rem; padding: 2px 6px;
         }
 
-        /* Quick Add Area: Colored Dropdowns */
+        /* Quick Add Area */
         .quick-add-title {
             font-size: 0.92rem; font-weight: 700; color: #64748b; margin-bottom: 12px;
         }
@@ -226,7 +226,7 @@
         }
         .btn-status-leave:hover { opacity: 0.9; }
 
-        /* 綠背景白字：外出 (4種) */
+        /* 綠背景白字：外出 */
         .btn-status-outing {
             background-color: var(--outing-green-bg); color: #ffffff; border: none; border-radius: 8px;
             padding: 7px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
@@ -249,11 +249,11 @@
         </div>
         <div style="display: flex; gap: 8px;">
             <input type="text" id="searchInput" class="search-input" placeholder="Search Name..." oninput="handleSearch()">
-            <button class="refresh-btn" onclick="loadAllSheetData()">Refresh</button>
+            <button class="refresh-btn" onclick="fetchSheetsDirect()">Refresh</button>
         </div>
     </div>
 
-    <!-- Main Grid (Starts directly from Current Month to Dec 2027) -->
+    <!-- Main Grid -->
     <div class="calendar-grid-wrapper" id="mainCalendarGrid"></div>
 
     <!-- Modal: View & Quick Add -->
@@ -300,7 +300,6 @@
             <div class="slot-selector-box" id="slotSelectorBox">
                 <div class="slot-title">Select status for <strong id="selectedMemberNameText"></strong>:</div>
                 
-                <!-- 灰底白字：休假 (淺約30%) -->
                 <div class="btn-section-label">休假 (Leave)</div>
                 <div class="slot-buttons-grid">
                     <button class="btn-status-leave" onclick="confirmAddWithSlot('上午休')">上午休</button>
@@ -308,7 +307,6 @@
                     <button class="btn-status-leave" onclick="confirmAddWithSlot('全天休')">全天休</button>
                 </div>
 
-                <!-- 綠底白字：外出 (4種) -->
                 <div class="btn-section-label">外出 (Outing)</div>
                 <div class="slot-buttons-grid">
                     <button class="btn-status-outing" onclick="confirmAddWithSlot('上午外出')">上午外出</button>
@@ -321,10 +319,8 @@
     </div>
 
     <script>
-        // 試算表 ID
         const SHEET_ID = "1tQsk8QA9hd-xlgEzXe5uImGJy6WIEb0p9igklTlmKZw";
 
-        // 成員分組（Richard & TsaiMing 已歸入 KGB220）
         let GROUPS_DATA = {
             "KGB200": ["Tony"],
             "KGB210": ["Esther", "Jasmin", "Sophie", "Edna", "Sandy", "Mars", "Helen", "Ann", "Harry", "Ming", "Dino"],
@@ -346,15 +342,14 @@
             return String(dateStr).trim();
         }
 
-        // 分類：休假灰底白字，外出綠底白字，Events紫色
         function getStatusCategory(group, reason) {
             if (group === "Event" || (reason && (reason.includes("季會") || reason.includes("節") || reason.includes("補假") || reason.includes("展") || reason.includes("GPC") || reason.includes("IFA") || reason.includes("Computex") || reason.includes("GMM") || reason.includes("尾牙") || reason.includes("初")))) {
                 return "tag-event";
             }
             if (reason && (reason.includes("外出") || reason.includes("出差") || reason.includes("Outing") || reason.includes("Trip"))) {
-                return "tag-outing"; // 綠底白字
+                return "tag-outing";
             }
-            return "tag-leave"; // 灰底白字
+            return "tag-leave";
         }
 
         let currentFilter = 'ALL';
@@ -434,6 +429,7 @@
             return html;
         }
 
+        // 渲染主網格 (保證打開頁面絕不空白)
         function renderAll() {
             const mainGrid = document.getElementById('mainCalendarGrid');
             if (!mainGrid) return;
@@ -448,86 +444,66 @@
         }
 
         // ==========================================
-        // Google Sheet 官方標準 Gviz API 直連
+        // 純原生動態注入腳本讀取 Gviz，零外部依賴、永不卡死
         // ==========================================
-        let loadedLeaves = [];
-        let loadedEvents = [];
+        let rawLeaves = [];
+        let rawEvents = [];
 
-        function parseGvizResponse(rawText) {
-            const start = rawText.indexOf('{');
-            const end = rawText.lastIndexOf('}');
-            if (start !== -1 && end !== -1) {
-                return JSON.parse(rawText.substring(start, end + 1));
+        window.handleLeavesGviz = function(res) {
+            if (res && res.table && res.table.rows) {
+                rawLeaves = [];
+                res.table.rows.forEach((r, idx) => {
+                    const c = r.c;
+                    if (c && c[0] && c[2]) {
+                        const name = c[0].v ? String(c[0].v).trim() : '';
+                        let group = c[1] && c[1].v ? String(c[1].v).trim() : '';
+                        const date = parseDateStandard(c[2].f || c[2].v);
+                        const status = c[5] && c[5].v ? String(c[5].v).trim() : (c[3] && c[3].v ? String(c[3].v).trim() : '全天休');
+
+                        if (name === "Richard" || name === "TsaiMing") group = "KGB220";
+                        if (name && date) {
+                            rawLeaves.push({ id: "leaf_" + idx, name: name, group: group, date: date, reason: status });
+                        }
+                    }
+                });
+                mergeData();
             }
-            return null;
+        };
+
+        window.handleEventsGviz = function(res) {
+            if (res && res.table && res.table.rows) {
+                rawEvents = [];
+                res.table.rows.forEach((r, idx) => {
+                    const c = r.c;
+                    if (c && c[0] && c[1]) {
+                        const date = parseDateStandard(c[0].f || c[0].v);
+                        const act = c[1].v ? String(c[1].v).trim() : '';
+                        if (date && act) {
+                            rawEvents.push({ id: "event_" + idx, name: act, group: "Event", date: date, reason: act });
+                        }
+                    }
+                });
+                mergeData();
+            }
+        };
+
+        function mergeData() {
+            leavesData = [...rawEvents, ...rawLeaves];
+            const localSaved = JSON.parse(localStorage.getItem("kgb_user_records_final") || "[]");
+            localSaved.forEach(rec => leavesData.push(rec));
+            renderAll();
         }
 
-        async function fetchSheetTab(sheetName) {
-            const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
-            const res = await fetch(url);
-            const text = await res.text();
-            return parseGvizResponse(text);
-        }
+        function fetchSheetsDirect() {
+            // 讀取 Leaves
+            const s1 = document.createElement("script");
+            s1.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=responseHandler:handleLeavesGviz&sheet=Leaves`;
+            document.body.appendChild(s1);
 
-        async function loadAllSheetData() {
-            try {
-                // 1. 讀取 Leaves
-                const leavesJson = await fetchSheetTab("Leaves");
-                if (leavesJson && leavesJson.table && leavesJson.table.rows) {
-                    loadedLeaves = [];
-                    leavesJson.table.rows.forEach((r, idx) => {
-                        const c = r.c;
-                        if (c && c[0] && c[2]) {
-                            const name = c[0].v ? String(c[0].v).trim() : '';
-                            let group = c[1] && c[1].v ? String(c[1].v).trim() : '';
-                            const date = parseDateStandard(c[2].f || c[2].v);
-                            const status = c[5] && c[5].v ? String(c[5].v).trim() : (c[3] && c[3].v ? String(c[3].v).trim() : '全天休');
-
-                            if (name === "Richard" || name === "TsaiMing") group = "KGB220";
-                            if (name && date) {
-                                loadedLeaves.push({
-                                    id: "leaf_" + idx,
-                                    name: name,
-                                    group: group,
-                                    date: date,
-                                    reason: status
-                                });
-                            }
-                        }
-                    });
-                }
-
-                // 2. 讀取 Events
-                const eventsJson = await fetchSheetTab("Events");
-                if (eventsJson && eventsJson.table && eventsJson.table.rows) {
-                    loadedEvents = [];
-                    eventsJson.table.rows.forEach((r, idx) => {
-                        const c = r.c;
-                        if (c && c[0] && c[1]) {
-                            const date = parseDateStandard(c[0].f || c[0].v);
-                            const act = c[1].v ? String(c[1].v).trim() : '';
-                            if (date && act) {
-                                loadedEvents.push({
-                                    id: "event_" + idx,
-                                    name: act,
-                                    group: "Event",
-                                    date: date,
-                                    reason: act
-                                });
-                            }
-                        }
-                    });
-                }
-
-                leavesData = [...loadedEvents, ...loadedLeaves];
-
-                const localSaved = JSON.parse(localStorage.getItem("kgb_user_records_final") || "[]");
-                localSaved.forEach(rec => leavesData.push(rec));
-
-                renderAll();
-            } catch (err) {
-                console.warn("Sheet Gviz loading...", err);
-            }
+            // 讀取 Events
+            const s2 = document.createElement("script");
+            s2.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=responseHandler:handleEventsGviz&sheet=Events`;
+            document.body.appendChild(s2);
         }
 
         function openDateModal(dateKey, formattedDate) {
@@ -635,10 +611,12 @@
             renderAll();
         }
 
-        // 初始化
+        // 1. 下拉選單配置
         setupDropdowns();
+        // 2. 立即繪製月曆框架（確保打開瞬間絕無白畫面）
         renderAll();
-        loadAllSheetData();
+        // 3. 取得 Google 試算表資料注入
+        fetchSheetsDirect();
     </script>
 </body>
 </html>
