@@ -27,12 +27,12 @@
             --qa-250-bg: #e7f5ff;
             --qa-250-lbl: #3b82f6;
 
-            /* Button & Tag Styling: 休假淺30%質感灰，外出綠底白字 */
-            --leave-gray-bg: #8e9ba8;  /* 淺約30%溫和灰 */
-            --outing-green-bg: #15803d; /* 綠背景 */
-            --tag-event-bg: #8b5cf6;   /* Events 紫色 */
+            /* Button & Tag Styling: 休假淺30%灰，外出綠，活動紫 */
+            --leave-gray-bg: #8e9ba8;   /* 淺約30%溫和灰 */
+            --outing-green-bg: #15803d;  /* 綠背景 */
+            --tag-event-bg: #8b5cf6;    /* Events 紫色 */
 
-            --weekend-bg: #eef2f6;     /* 週末20%淺灰底色 (比白深、比休假灰淺) */
+            --weekend-bg: #eef2f6;      /* 週末20%淺灰底色 */
             --today-orange: #FF8C00;
         }
 
@@ -71,22 +71,19 @@
         }
         .refresh-btn:hover { background: #f1f5f9; }
 
-        /* Main Calendar Grid: 5 Columns, starting directly from Current Month */
+        /* 調整為 4 欄佈局：格子寬度擴大 25% 以上，人名完整展示 */
         .calendar-grid-wrapper {
             width: 100%;
             display: grid;
-            grid-template-columns: repeat(5, minmax(200px, 1fr));
-            gap: 14px;
+            grid-template-columns: repeat(4, minmax(260px, 1fr));
+            gap: 16px;
             align-items: start;
         }
-        @media (max-width: 1450px) {
-            .calendar-grid-wrapper { grid-template-columns: repeat(4, minmax(190px, 1fr)); }
+        @media (max-width: 1200px) {
+            .calendar-grid-wrapper { grid-template-columns: repeat(3, minmax(240px, 1fr)); }
         }
-        @media (max-width: 1150px) {
-            .calendar-grid-wrapper { grid-template-columns: repeat(3, minmax(180px, 1fr)); }
-        }
-        @media (max-width: 850px) {
-            .calendar-grid-wrapper { grid-template-columns: repeat(2, minmax(170px, 1fr)); }
+        @media (max-width: 900px) {
+            .calendar-grid-wrapper { grid-template-columns: repeat(2, minmax(200px, 1fr)); }
         }
         @media (max-width: 600px) {
             .calendar-grid-wrapper { grid-template-columns: 1fr; }
@@ -95,42 +92,42 @@
         /* Monthly Box */
         .month-box {
             background: #ffffff; border-radius: 12px; border: 1px solid var(--border-color);
-            padding: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); display: flex; flex-direction: column;
+            padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); display: flex; flex-direction: column;
             overflow: hidden;
         }
         .month-title {
-            text-align: center; font-weight: 700; font-size: 0.9rem; color: #1e293b; margin-bottom: 8px;
+            text-align: center; font-weight: 700; font-size: 0.95rem; color: #1e293b; margin-bottom: 8px;
         }
         .days-header {
             display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; margin-bottom: 3px;
         }
         .day-label {
-            text-align: center; font-size: 0.62rem; font-weight: 600; color: #94a3b8;
+            text-align: center; font-size: 0.65rem; font-weight: 600; color: #94a3b8;
         }
         .day-label.weekend-label {
             color: #64748b; font-weight: 700;
         }
 
-        /* 嚴格等寬 7 欄，絕不被任何長字串撐寬變形 */
+        /* 嚴格等寬 7 欄 */
         .month-days-grid {
             display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px;
         }
 
-        /* 星期一至五：預設白底 */
+        /* 彈性拉長高度，單日格子更寬裕 */
         .day-cell {
-            min-height: 54px;
+            min-height: 58px;
             height: auto;
             border: 1px solid #f1f5f9; border-radius: 5px;
             padding: 2px 2px 4px 2px;
             display: flex; flex-direction: column; align-items: center;
-            background: #ffffff; position: relative; font-size: 0.7rem; cursor: pointer;
+            background: #ffffff; position: relative; font-size: 0.72rem; cursor: pointer;
             transition: background 0.15s;
             overflow: hidden;
             box-sizing: border-box;
         }
         .day-cell:hover { background: #f8fafc; border-color: #cbd5e1; }
         
-        /* 星期六、星期日：20% 灰色背景區隔 */
+        /* 週末 20% 淺灰底色 */
         .day-cell.is-weekend {
             background: var(--weekend-bg) !important;
             border-color: #e2e8f0;
@@ -140,9 +137,9 @@
         }
 
         .day-cell.empty {
-            border: none; background: transparent !important; cursor: default; min-height: 54px;
+            border: none; background: transparent !important; cursor: default; min-height: 58px;
         }
-        .day-number { font-weight: 700; font-size: 0.7rem; color: #475569; margin-bottom: 3px; }
+        .day-number { font-weight: 700; font-size: 0.72rem; color: #475569; margin-bottom: 3px; }
 
         /* Today Glowing Orange Border */
         .day-cell.is-today {
@@ -151,18 +148,27 @@
             box-shadow: 0 0 8px rgba(255, 140, 0, 0.45) !important;
         }
 
-        /* Tags Container: 自動排列不擠壓、不壓扁 */
+        /* Tags Container */
         .tags-container {
             width: 100%; display: flex; flex-direction: column; gap: 2px;
         }
-        /* 人名與活動標籤：長文字自動換行折行，絕不撐破日曆格子 */
+        
+        /* 人名與活動標籤：英文姓名完整呈現、絕不拆字斷行 */
         .person-tag {
-            width: 100%; font-size: 0.58rem; padding: 2px 2px; border-radius: 3px;
-            white-space: normal; word-break: break-all;
+            width: 100%; font-size: 0.62rem; padding: 2px 3px; border-radius: 3px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            letter-spacing: -0.2px;
             text-align: center; font-weight: 700; color: #ffffff !important;
             cursor: pointer; line-height: 1.15;
             box-sizing: border-box;
         }
+        /* 中文較長字串（如活動名稱）允許折行顯示 */
+        .person-tag.tag-event {
+            white-space: normal;
+            word-break: break-all;
+            line-height: 1.1;
+        }
+
         .tag-leave  { background-color: var(--leave-gray-bg) !important; }  /* 淺30%灰底白字 */
         .tag-outing { background-color: var(--outing-green-bg) !important; } /* 外出綠底白字 */
         .tag-event  { background-color: var(--tag-event-bg) !important; }   /* 紫色 */
@@ -242,7 +248,7 @@
         .btn-section-label { font-size: 0.75rem; font-weight: 700; color: #64748b; margin: 6px 0 4px 0; text-transform: uppercase; }
         .slot-buttons-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
 
-        /* 灰背景白字：休假 (淺約30%) */
+        /* 灰背景白字：休假 */
         .btn-status-leave {
             background-color: var(--leave-gray-bg); color: #ffffff; border: none; border-radius: 8px;
             padding: 7px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
@@ -276,7 +282,7 @@
         </div>
     </div>
 
-    <!-- Main Grid -->
+    <!-- Main Grid: 4 欄佈局向下展開 -->
     <div class="calendar-grid-wrapper" id="mainCalendarGrid"></div>
 
     <!-- Modal: View & Quick Add -->
@@ -419,14 +425,13 @@
                 <div class="month-days-grid">
             `;
 
-            // 空白補位 (週日為0)
             for (let i = 0; i < firstDayIndex; i++) {
                 const isWk = (i === 0);
                 html += `<div class="day-cell empty ${isWk ? 'is-weekend' : ''}"></div>`;
             }
 
             for (let d = 1; d <= daysInMonth; d++) {
-                const currentDayOfWeek = (firstDayIndex + d - 1) % 7; // 0=Sun, 6=Sat
+                const currentDayOfWeek = (firstDayIndex + d - 1) % 7;
                 const isWeekend = (currentDayOfWeek === 0 || currentDayOfWeek === 6);
                 const dateKey = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
                 const isToday = (dateKey === todayStr);
@@ -459,7 +464,6 @@
             return html;
         }
 
-        // 渲染主網格 (從本月展開至 2027 年底)
         function renderAll() {
             const mainGrid = document.getElementById('mainCalendarGrid');
             if (!mainGrid) return;
@@ -473,7 +477,6 @@
             }
         }
 
-        // Google Sheets Gviz 數據接收
         let rawLeaves = [];
         let rawEvents = [];
 
