@@ -27,8 +27,8 @@
             --qa-250-bg: #e7f5ff;
             --qa-250-lbl: #3b82f6;
 
-            /* Button & Tag Styling: 休假灰底白字，外出綠底白字 */
-            --leave-gray-bg: #4b5563;  /* 灰背景 */
+            /* Button & Tag Styling: 休假淺30%質感灰，外出綠底白字 */
+            --leave-gray-bg: #8e9ba8;  /* 淺約30%的溫和中灰 */
             --outing-green-bg: #15803d; /* 綠背景 */
             --tag-event-bg: #8b5cf6;   /* Events 紫色 */
 
@@ -76,6 +76,7 @@
             display: grid;
             grid-template-columns: repeat(5, minmax(200px, 1fr));
             gap: 14px;
+            align-items: start;
         }
         @media (max-width: 1450px) {
             .calendar-grid-wrapper { grid-template-columns: repeat(4, minmax(190px, 1fr)); }
@@ -108,15 +109,19 @@
         .month-days-grid {
             display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
         }
+        /* 格子自動依內容彈性拉長，不壓扁人名 */
         .day-cell {
-            aspect-ratio: 1 / 1.35; border: 1px solid #f1f5f9; border-radius: 5px;
-            padding: 2px; display: flex; flex-direction: column; align-items: center;
+            min-height: 54px;
+            height: auto;
+            border: 1px solid #f1f5f9; border-radius: 5px;
+            padding: 2px 2px 4px 2px;
+            display: flex; flex-direction: column; align-items: center;
             background: #fafbfc; position: relative; font-size: 0.7rem; cursor: pointer;
-            overflow: hidden; transition: background 0.15s;
+            transition: background 0.15s;
         }
         .day-cell:hover { background: #f8fafc; border-color: #cbd5e1; }
-        .day-cell.empty { border: none; background: transparent; cursor: default; }
-        .day-number { font-weight: 700; font-size: 0.7rem; color: #475569; margin-bottom: 1px; }
+        .day-cell.empty { border: none; background: transparent; cursor: default; min-height: 54px; }
+        .day-number { font-weight: 700; font-size: 0.7rem; color: #475569; margin-bottom: 3px; }
 
         /* Today Glowing Orange Border */
         .day-cell.is-today {
@@ -125,17 +130,17 @@
             box-shadow: 0 0 8px rgba(255, 140, 0, 0.45) !important;
         }
 
-        /* Tags Container & 3-Color Badges on Calendar */
+        /* Tags Container: 自動排列不擠壓 */
         .tags-container {
-            width: 100%; display: flex; flex-direction: column; gap: 2px; overflow-y: auto;
+            width: 100%; display: flex; flex-direction: column; gap: 2px;
         }
         .person-tag {
-            width: 100%; font-size: 0.58rem; padding: 1.5px 2px; border-radius: 3px;
+            width: 100%; font-size: 0.6rem; padding: 2px 2px; border-radius: 3px;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
             text-align: center; font-weight: 700; color: #ffffff !important;
-            cursor: pointer;
+            cursor: pointer; line-height: 1.15;
         }
-        .tag-leave  { background-color: var(--leave-gray-bg) !important; }  /* 休假灰底白字 */
+        .tag-leave  { background-color: var(--leave-gray-bg) !important; }  /* 淺30%灰底白字 */
         .tag-outing { background-color: var(--outing-green-bg) !important; } /* 外出綠底白字 */
         .tag-event  { background-color: var(--tag-event-bg) !important; }   /* 紫色 */
 
@@ -214,7 +219,7 @@
         .btn-section-label { font-size: 0.75rem; font-weight: 700; color: #64748b; margin: 6px 0 4px 0; text-transform: uppercase; }
         .slot-buttons-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
 
-        /* 灰背景白字：休假 (3種) */
+        /* 灰背景白字：休假 (淺約30%) */
         .btn-status-leave {
             background-color: var(--leave-gray-bg); color: #ffffff; border: none; border-radius: 8px;
             padding: 7px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
@@ -233,7 +238,7 @@
 
     <!-- Header Navigation -->
     <div class="top-bar">
-        <div class="app-title">🗓️️ KGB200 Calendar</div>
+        <div class="app-title">🗓️ KGB200 Calendar</div>
         <div class="filter-container">
             <button class="filter-btn btn-all active" onclick="setGroupFilter('ALL', this)">All</button>
             <button class="filter-btn btn-200" onclick="setGroupFilter('KGB200', this)">KGB200 Tony</button>
@@ -295,7 +300,7 @@
             <div class="slot-selector-box" id="slotSelectorBox">
                 <div class="slot-title">Select status for <strong id="selectedMemberNameText"></strong>:</div>
                 
-                <!-- 灰底白字：休假 (3種) -->
+                <!-- 灰底白字：休假 (淺約30%) -->
                 <div class="btn-section-label">休假 (Leave)</div>
                 <div class="slot-buttons-grid">
                     <button class="btn-status-leave" onclick="confirmAddWithSlot('上午休')">上午休</button>
@@ -319,7 +324,7 @@
         // 試算表 ID
         const SHEET_ID = "1tQsk8QA9hd-xlgEzXe5uImGJy6WIEb0p9igklTlmKZw";
 
-        // 1. 成員分組（Richard & TsaiMing 已在 KGB220）
+        // 成員分組（Richard & TsaiMing 已歸入 KGB220）
         let GROUPS_DATA = {
             "KGB200": ["Tony"],
             "KGB210": ["Esther", "Jasmin", "Sophie", "Edna", "Sandy", "Mars", "Helen", "Ann", "Harry", "Ming", "Dino"],
@@ -429,7 +434,6 @@
             return html;
         }
 
-        // 從「當前月份」開始展開至 2027 年底
         function renderAll() {
             const mainGrid = document.getElementById('mainCalendarGrid');
             if (!mainGrid) return;
@@ -444,13 +448,12 @@
         }
 
         // ==========================================
-        // Google Sheet 官方標準 Gviz API 直連（100% 穩定不閃退）
+        // Google Sheet 官方標準 Gviz API 直連
         // ==========================================
         let loadedLeaves = [];
         let loadedEvents = [];
 
         function parseGvizResponse(rawText) {
-            // Google Gviz 回傳格式是 /*O_o*/ google.visualization.Query.setResponse({...});
             const start = rawText.indexOf('{');
             const end = rawText.lastIndexOf('}');
             if (start !== -1 && end !== -1) {
@@ -468,7 +471,7 @@
 
         async function loadAllSheetData() {
             try {
-                // 1. 抓取 Leaves 分頁 (A=Name, B=Group, C=Date, F=Status)
+                // 1. 讀取 Leaves
                 const leavesJson = await fetchSheetTab("Leaves");
                 if (leavesJson && leavesJson.table && leavesJson.table.rows) {
                     loadedLeaves = [];
@@ -478,7 +481,6 @@
                             const name = c[0].v ? String(c[0].v).trim() : '';
                             let group = c[1] && c[1].v ? String(c[1].v).trim() : '';
                             const date = parseDateStandard(c[2].f || c[2].v);
-                            // 關鍵修正：Status 位於 F 欄 (c[5])
                             const status = c[5] && c[5].v ? String(c[5].v).trim() : (c[3] && c[3].v ? String(c[3].v).trim() : '全天休');
 
                             if (name === "Richard" || name === "TsaiMing") group = "KGB220";
@@ -495,7 +497,7 @@
                     });
                 }
 
-                // 2. 抓取 Events 分頁 (A=Date, B=Activity)
+                // 2. 讀取 Events
                 const eventsJson = await fetchSheetTab("Events");
                 if (eventsJson && eventsJson.table && eventsJson.table.rows) {
                     loadedEvents = [];
@@ -517,16 +519,14 @@
                     });
                 }
 
-                // 3. 合併資料並重繪
                 leavesData = [...loadedEvents, ...loadedLeaves];
 
-                // 合併使用者本地手動新增之資料
                 const localSaved = JSON.parse(localStorage.getItem("kgb_user_records_final") || "[]");
                 localSaved.forEach(rec => leavesData.push(rec));
 
                 renderAll();
             } catch (err) {
-                console.warn("Google Sheet Gviz 直連中，重試...", err);
+                console.warn("Sheet Gviz loading...", err);
             }
         }
 
@@ -550,95 +550,3 @@
             }
 
             dayRecords.forEach(rec => {
-                const row = document.createElement("div");
-                row.className = "record-row";
-                
-                const cat = getStatusCategory(rec.group, rec.reason);
-                let reasonClass = "rec-reason-leave";
-                if (cat === "tag-outing") reasonClass = "rec-reason-outing";
-                if (cat === "tag-event") reasonClass = "rec-reason-event";
-
-                row.innerHTML = `
-                    <div>
-                        <span class="rec-name">${rec.name}</span>: 
-                        <span class="${reasonClass}">${rec.reason || '全天休'}</span>
-                    </div>
-                    <button class="rec-del-btn" onclick="removeRecord('${rec.id}')">✕</button>
-                `;
-                container.appendChild(row);
-            });
-        }
-
-        function onMemberSelected(group, selectElement) {
-            const memberName = selectElement.value;
-            if (!memberName) {
-                document.getElementById("slotSelectorBox").style.display = "none";
-                return;
-            }
-            pendingMember = memberName;
-            pendingGroup = group;
-            
-            document.getElementById("selectedMemberNameText").textContent = `${memberName} (${group})`;
-            document.getElementById("slotSelectorBox").style.display = "block";
-        }
-
-        function confirmAddWithSlot(slotName) {
-            if (!pendingMember || !pendingGroup) return;
-
-            const newRec = {
-                id: "local_" + Date.now(),
-                name: pendingMember,
-                group: pendingGroup,
-                date: activeDateKey,
-                reason: slotName
-            };
-            leavesData.push(newRec);
-
-            const localSaved = JSON.parse(localStorage.getItem("kgb_user_records_final") || "[]");
-            localSaved.push(newRec);
-            localStorage.setItem("kgb_user_records_final", JSON.stringify(localSaved));
-
-            document.getElementById("slotSelectorBox").style.display = "none";
-            document.getElementById("sel_" + pendingGroup).value = "";
-            pendingMember = null;
-            pendingGroup = null;
-
-            renderModalRecords();
-            renderAll();
-        }
-
-        function removeRecord(id) {
-            if (confirm("Delete this record?")) {
-                leavesData = leavesData.filter(x => x.id !== id);
-                let localSaved = JSON.parse(localStorage.getItem("kgb_user_records_final") || "[]");
-                localSaved = localSaved.filter(x => x.id !== id);
-                localStorage.setItem("kgb_user_records_final", JSON.stringify(localSaved));
-
-                renderModalRecords();
-                renderAll();
-            }
-        }
-
-        function closeModal() {
-            document.getElementById("actionModal").style.display = "none";
-            document.getElementById("slotSelectorBox").style.display = "none";
-        }
-
-        function setGroupFilter(group, btn) {
-            currentFilter = group;
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            renderAll();
-        }
-        function handleSearch() {
-            searchQuery = document.getElementById("searchInput").value.trim().toLowerCase();
-            renderAll();
-        }
-
-        // 初始化
-        setupDropdowns();
-        renderAll();
-        loadAllSheetData();
-    </script>
-</body>
-</html>
