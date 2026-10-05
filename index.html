@@ -1,5 +1,4 @@
 # update_calendar.py
-# 執行此腳本即可生成包含 Apps Script 串接、Quick Add 專屬底色與 3 色標籤的 index.html
 
 HTML_CONTENT = """<!DOCTYPE html>
 <html lang="en">
@@ -13,7 +12,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             --border-color: #e2e8f0;
             --text-color: #334155;
             
-            /* Quick Add Group Select Colors (Matches example_3.png) */
+            /* Quick Add Group Select Colors */
             --qa-200-border: #ff7979;
             --qa-200-bg: #fff5f5;
             --qa-200-lbl: #ff6b6b;
@@ -30,10 +29,10 @@ HTML_CONTENT = """<!DOCTYPE html>
             --qa-250-bg: #e7f5ff;
             --qa-250-lbl: #3b82f6;
 
-            /* Calendar Pill Tag Colors: Only 3 Types */
-            --tag-leave-bg: #9e9e9e;  /* 灰色: 休假 */
-            --tag-outing-bg: #10b981; /* 綠色: 外出/出差 */
-            --tag-event-bg: #8b5cf6;  /* 紫色: Events */
+            /* Button & Tag Styling according to revise.jpg */
+            --leave-green-bg: #1e7e34; /* Dark green */
+            --outing-gray-bg: #495057; /* Dark gray */
+            --tag-event-bg: #8b5cf6;   /* Events Purple */
 
             --today-orange: #FF8C00;
         }
@@ -88,7 +87,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         }
         .past-month-btn:hover { background: #f1f5f9; color: #1e293b; }
 
-        /* Right Calendar Grid: 5 Columns (matches Perfect 20261005.jpg) */
+        /* Right Calendar Grid: 5 Columns */
         .calendar-grid-wrapper {
             flex-grow: 1;
             display: grid;
@@ -145,7 +144,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             box-shadow: 0 0 8px rgba(255, 140, 0, 0.45) !important;
         }
 
-        /* Tags Container & 3-Color Badges */
+        /* Tags Container & 3-Color Badges on Calendar */
         .tags-container {
             width: 100%; display: flex; flex-direction: column; gap: 2px; overflow-y: auto;
         }
@@ -155,9 +154,9 @@ HTML_CONTENT = """<!DOCTYPE html>
             text-align: center; font-weight: 700; color: #ffffff !important;
             cursor: pointer;
         }
-        .tag-leave  { background-color: var(--tag-leave-bg) !important; }
-        .tag-outing { background-color: var(--tag-outing-bg) !important; }
-        .tag-event  { background-color: var(--tag-event-bg) !important; }
+        .tag-leave  { background-color: var(--leave-green-bg) !important; } /* 深綠 */
+        .tag-outing { background-color: var(--outing-gray-bg) !important; } /* 深灰 */
+        .tag-event  { background-color: var(--tag-event-bg) !important; }   /* 紫色 */
 
         /* Modal Styles */
         .modal-mask {
@@ -165,7 +164,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             background: rgba(15, 23, 42, 0.4); z-index: 999; justify-content: center; align-items: center;
         }
         .modal-card-box {
-            background: #ffffff; border-radius: 16px; padding: 20px 24px; width: 92%; max-width: 480px;
+            background: #ffffff; border-radius: 16px; padding: 20px 24px; width: 92%; max-width: 490px;
             box-shadow: 0 15px 35px rgba(0,0,0,0.18); position: relative; max-height: 90vh; overflow-y: auto;
         }
         .modal-header-row {
@@ -181,22 +180,22 @@ HTML_CONTENT = """<!DOCTYPE html>
         /* Existing Records Card in Modal */
         .records-card {
             background: #ffffff; border: 1.5px solid #edf2f7; border-radius: 14px;
-            padding: 14px 16px; min-height: 60px; margin-bottom: 16px;
+            padding: 14px 16px; min-height: 55px; margin-bottom: 16px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.02);
             display: flex; flex-direction: column; gap: 8px;
         }
         .record-row {
-            font-size: 0.95rem; display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.92rem; display: flex; justify-content: space-between; align-items: center;
         }
         .record-row .rec-name { font-weight: 700; color: #1e293b; }
-        .record-row .rec-reason-leave { margin-left: 4px; color: #475569; }
-        .record-row .rec-reason-outing { margin-left: 4px; color: #10b981; font-weight: 600; }
-        .record-row .rec-reason-event { margin-left: 4px; color: #8b5cf6; font-weight: 600; }
+        .record-row .rec-reason-leave { margin-left: 4px; color: var(--leave-green-bg); font-weight: 600; }
+        .record-row .rec-reason-outing { margin-left: 4px; color: var(--outing-gray-bg); font-weight: 600; }
+        .record-row .rec-reason-event { margin-left: 4px; color: var(--tag-event-bg); font-weight: 600; }
         .rec-del-btn {
             color: #ef4444; cursor: pointer; border: none; background: transparent; font-size: 0.85rem; padding: 2px 6px;
         }
 
-        /* Quick Add Area: Colored Dropdowns (Matches example_3.png) */
+        /* Quick Add Area: Colored Dropdowns */
         .quick-add-title {
             font-size: 0.92rem; font-weight: 700; color: #64748b; margin-bottom: 12px;
         }
@@ -223,28 +222,37 @@ HTML_CONTENT = """<!DOCTYPE html>
         .lbl-250 { color: var(--qa-250-lbl); }
         .sel-250 { border: 1.8px solid var(--qa-250-border); background-color: var(--qa-250-bg); }
 
-        /* Time / Slot Selection Toolbar */
+        /* Status Selection Section (Revised as per revise.jpg) */
         .slot-selector-box {
-            display: none; background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px;
-            padding: 12px; margin-top: 10px; animation: fadeIn 0.2s ease-in;
+            display: none; background: #ffffff; border: 1.5px solid var(--border-color); border-radius: 14px;
+            padding: 14px; margin-top: 10px; animation: fadeIn 0.2s ease-in;
         }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
-        .slot-title { font-size: 0.82rem; font-weight: 700; color: #475569; margin-bottom: 8px; }
-        .slot-buttons-grid { display: flex; flex-wrap: wrap; gap: 6px; }
-        .slot-btn {
-            border: 1px solid var(--border-color); background: #ffffff; border-radius: 8px;
-            padding: 6px 12px; font-size: 0.8rem; font-weight: 600; cursor: pointer; color: #334155;
-            transition: all 0.15s;
+        .slot-title { font-size: 0.85rem; font-weight: 700; color: #334155; margin-bottom: 10px; }
+        
+        .btn-section-label { font-size: 0.75rem; font-weight: 700; color: #64748b; margin: 6px 0 4px 0; text-transform: uppercase; }
+        .slot-buttons-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+
+        /* Dark Green Background, White Texts for 休假 */
+        .btn-status-leave {
+            background-color: var(--leave-green-bg); color: #ffffff; border: none; border-radius: 8px;
+            padding: 7px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
         }
-        .slot-btn:hover { background: #3b82f6; color: white; border-color: #3b82f6; }
-        .slot-btn.outing-slot:hover { background: #10b981; color: white; border-color: #10b981; }
+        .btn-status-leave:hover { opacity: 0.9; }
+
+        /* Dark Gray Background, White Texts for 外出 */
+        .btn-status-outing {
+            background-color: var(--outing-gray-bg); color: #ffffff; border: none; border-radius: 8px;
+            padding: 7px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
+        }
+        .btn-status-outing:hover { opacity: 0.9; }
     </style>
 </head>
 <body>
 
     <!-- Header Navigation -->
     <div class="top-bar">
-        <div class="app-title">🗓️ KGB200 Calendar</div>
+        <div class="app-title">🗓️️ KGB200 Calendar</div>
         <div class="filter-container">
             <button class="filter-btn btn-all active" onclick="setGroupFilter('ALL', this)">All</button>
             <button class="filter-btn btn-200" onclick="setGroupFilter('KGB200', this)">KGB200 Tony</button>
@@ -264,7 +272,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         <!-- Left Sidebar: Past Months -->
         <div class="sidebar-past" id="pastMonthsContainer"></div>
 
-        <!-- Right: Main 5-Column Grid (From Current Month to Dec 2027) -->
+        <!-- Right: Main 5-Column Grid -->
         <div class="calendar-grid-wrapper" id="mainCalendarGrid"></div>
     </div>
 
@@ -272,11 +280,11 @@ HTML_CONTENT = """<!DOCTYPE html>
     <div class="modal-mask" id="actionModal" onclick="if(event.target===this) closeModal()">
         <div class="modal-card-box">
             <div class="modal-header-row">
-                <div class="modal-date-title">📍 <span id="modalDateDisplay">Mar 9, 2026</span></div>
+                <div class="modal-date-title">📍 <span id="modalDateDisplay">Sep 7, 2026</span></div>
                 <button class="modal-close-icon" onclick="closeModal()">×</button>
             </div>
 
-            <!-- List of existing leaves -->
+            <!-- Existing records list -->
             <div class="records-card" id="recordsListContainer"></div>
 
             <!-- Quick Add Area -->
@@ -308,16 +316,25 @@ HTML_CONTENT = """<!DOCTYPE html>
                 </div>
             </div>
 
-            <!-- Slot / Reason Direct Selector -->
+            <!-- Status Buttons Section (Matches revise.jpg) -->
             <div class="slot-selector-box" id="slotSelectorBox">
                 <div class="slot-title">Select status for <strong id="selectedMemberNameText"></strong>:</div>
+                
+                <!-- Dark green background, white texts: 3 items -->
+                <div class="btn-section-label">休假 (Leave)</div>
                 <div class="slot-buttons-grid">
-                    <button class="slot-btn" onclick="confirmAddWithSlot('全天休')">全天休 (Day Off)</button>
-                    <button class="slot-btn" onclick="confirmAddWithSlot('上半天休')">上半天休 (AM Off)</button>
-                    <button class="slot-btn" onclick="confirmAddWithSlot('下半天休')">下半天休 (PM Off)</button>
-                    <button class="slot-btn outing-slot" onclick="confirmAddWithSlot('公出')">公出 (Outing)</button>
-                    <button class="slot-btn outing-slot" onclick="confirmAddWithSlot('國外出差')">國外出差 (Biz Trip)</button>
-                    <button class="slot-btn outing-slot" onclick="customPromptSlot()">Other / 自訂...</button>
+                    <button class="btn-status-leave" onclick="confirmAddWithSlot('上午休')">上午休</button>
+                    <button class="btn-status-leave" onclick="confirmAddWithSlot('下午休')">下午休</button>
+                    <button class="btn-status-leave" onclick="confirmAddWithSlot('全天休')">全天休</button>
+                </div>
+
+                <!-- Dark gray background, white texts: 4 items -->
+                <div class="btn-section-label">外出 (Outing)</div>
+                <div class="slot-buttons-grid">
+                    <button class="btn-status-outing" onclick="confirmAddWithSlot('上午外出')">上午外出</button>
+                    <button class="btn-status-outing" onclick="confirmAddWithSlot('下午外出')">下午外出</button>
+                    <button class="btn-status-outing" onclick="confirmAddWithSlot('全天外出')">全天外出</button>
+                    <button class="btn-status-outing" onclick="confirmAddWithSlot('國外出差')">國外出差</button>
                 </div>
             </div>
         </div>
@@ -335,7 +352,7 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
 
     <script>
-        // Apps Script Web App URL
+        // Apps Script Web App Deployment URL
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyQ2pyXJZfAZVMA1SB8XJc2m3i4tdqTYJCwUa1KoGodr1tSwy_dfljN_CkGIGElA6Uo7Q/exec";
 
         // Group Staff Definition (Richard & TsaiMing are in KGB220)
@@ -360,84 +377,103 @@ HTML_CONTENT = """<!DOCTYPE html>
             return String(dateStr).trim();
         }
 
+        // Category Classification according to revise.jpg
         function getStatusCategory(group, reason) {
-            if (group === "Event" || (reason && (reason.includes("季會") || reason.includes("假") || reason.includes("節") || reason.includes("公休")) && !reason.includes("全天休") && !reason.includes("半天"))) {
+            if (group === "Event" || (reason && (reason.includes("季會") || reason.includes("節") || reason.includes("公休")))) {
                 return "tag-event";
             }
-            if (reason && (reason.includes("出差") || reason.includes("外出") || reason.includes("公出") || reason.includes("Outing") || reason.includes("Trip"))) {
+            // 外出: 深灰底白字
+            if (reason && (reason.includes("外出") || reason.includes("出差") || reason.includes("Outing") || reason.includes("Trip"))) {
                 return "tag-outing";
             }
+            // 休假: 深綠底白字
             return "tag-leave";
         }
 
-        // Fetch Live Data from Apps Script Web App
-        async function fetchSheetData() {
+        // Global JSONP Callback handler to bypass CORS
+        window.handleAppsScriptData = function(json) {
             let loaded = [];
-            try {
-                const res = await fetch(APPS_SCRIPT_URL);
-                const json = await res.json();
-                
-                // Parse Staff if available
-                if (json.staff && json.staff.length > 0) {
-                    const newGrp = { "KGB200": [], "KGB210": [], "KGB220": [], "KGB250": [] };
-                    json.staff.forEach(st => {
-                        const sName = st.Name || st.name;
-                        let sGrp = st.Group || st.group;
-                        if (sName === "Richard" || sName === "TsaiMing") sGrp = "KGB220";
-                        if (newGrp[sGrp]) newGrp[sGrp].push(sName);
-                    });
-                    GROUPS_DATA = newGrp;
-                    setupDropdowns();
-                }
+            if (!json) return;
 
-                // Parse Leaves Data
-                if (json.leaves && json.leaves.length > 0) {
-                    json.leaves.forEach((lv, idx) => {
-                        const lName = lv.Name || lv.name;
-                        let lGrp = lv.Group || lv.group;
-                        const lDate = parseDateStandard(lv.Date || lv.date);
-                        const lNote = lv.Note || lv.note || lv.Reason || lv.reason || '全天休';
-                        if (lName === "Richard" || lName === "TsaiMing") lGrp = "KGB220";
+            // 1. Staff Members
+            if (json.staff && json.staff.length > 0) {
+                const newGrp = { "KGB200": [], "KGB210": [], "KGB220": [], "KGB250": [] };
+                json.staff.forEach(st => {
+                    const sName = st.Name || st.name;
+                    let sGrp = st.Group || st.group;
+                    if (sName === "Richard" || sName === "TsaiMing") sGrp = "KGB220";
+                    if (newGrp[sGrp]) newGrp[sGrp].push(sName);
+                });
+                GROUPS_DATA = newGrp;
+                setupDropdowns();
+            }
 
-                        if (lName && lDate) {
-                            loaded.push({
-                                id: "api_" + idx,
-                                name: lName,
-                                group: lGrp,
-                                date: lDate,
-                                reason: lNote
-                            });
-                        }
-                    });
-                }
+            // 2. Leaves Data
+            if (json.leaves && json.leaves.length > 0) {
+                json.leaves.forEach((lv, idx) => {
+                    const lName = lv.Name || lv.name;
+                    let lGrp = lv.Group || lv.group;
+                    const lDate = parseDateStandard(lv.Date || lv.date);
+                    const lNote = lv.Note || lv.note || lv.Reason || lv.reason || '全天休';
+                    if (lName === "Richard" || lName === "TsaiMing") lGrp = "KGB220";
 
-                // Parse Events Data if available
-                if (json.events && json.events.length > 0) {
-                    json.events.forEach((ev, idx) => {
-                        const eName = ev.Name || ev.name || ev.Title || ev.title;
-                        const eDate = parseDateStandard(ev.Date || ev.date);
-                        if (eName && eDate) {
-                            loaded.push({
-                                id: "event_" + idx,
-                                name: eName,
-                                group: "Event",
-                                date: eDate,
-                                reason: eName
-                            });
-                        }
-                    });
-                }
-            } catch(e) {
-                console.warn("Apps Script API fetch error:", e);
+                    if (lName && lDate) {
+                        loaded.push({
+                            id: "api_" + idx,
+                            name: lName,
+                            group: lGrp,
+                            date: lDate,
+                            reason: lNote
+                        });
+                    }
+                });
+            }
+
+            // 3. Events Data
+            if (json.events && json.events.length > 0) {
+                json.events.forEach((ev, idx) => {
+                    const eName = ev.Name || ev.name || ev.Title || ev.title;
+                    const eDate = parseDateStandard(ev.Date || ev.date);
+                    if (eName && eDate) {
+                        loaded.push({
+                            id: "event_" + idx,
+                            name: eName,
+                            group: "Event",
+                            date: eDate,
+                            reason: eName
+                        });
+                    }
+                });
             }
 
             leavesData = loaded;
 
-            // Merge local overrides
-            const localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v6") || "[]");
+            // Merge local added records
+            const localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v7") || "[]");
             localSaved.forEach(rec => leavesData.push(rec));
 
             renderAll();
+        };
+
+        // Fetch Live Data using JSONP (Guarantees Google Sheet data is fetched without CORS issues)
+        function fetchSheetData() {
+            // Remove previous script if existing
+            const oldScript = document.getElementById("jsonpScript");
+            if (oldScript) oldScript.remove();
+
+            const script = document.createElement("script");
+            script.id = "jsonpScript";
+            // Uses prefix callback to deliver data
+            const callbackParam = APPS_SCRIPT_URL.includes("?") ? "&callback=handleAppsScriptData" : "?callback=handleAppsScriptData";
+            script.src = APPS_SCRIPT_URL + callbackParam;
+            script.onerror = function() {
+                // If JSONP fails, fallback to direct fetch
+                fetch(APPS_SCRIPT_URL)
+                    .then(r => r.json())
+                    .then(data => window.handleAppsScriptData(data))
+                    .catch(e => console.error("Data load failed", e));
+            };
+            document.body.appendChild(script);
         }
 
         // States & Date
@@ -524,7 +560,6 @@ HTML_CONTENT = """<!DOCTYPE html>
             pastContainer.innerHTML = '';
             mainGrid.innerHTML = '';
 
-            // Left: Folded past months before current month
             let startYear = 2026, startMonth = 1;
             while (startYear < curY || (startYear === curY && startMonth < curM)) {
                 const y = startYear, m = startMonth;
@@ -538,7 +573,6 @@ HTML_CONTENT = """<!DOCTYPE html>
                 if (startMonth > 12) { startMonth = 1; startYear++; }
             }
 
-            // Right: From current month through Dec 2027
             let mainYear = curY, mainMonth = curM;
             while (mainYear < 2027 || (mainYear === 2027 && mainMonth <= 12)) {
                 mainGrid.innerHTML += renderMonthCalendar(mainYear, mainMonth);
@@ -611,9 +645,9 @@ HTML_CONTENT = """<!DOCTYPE html>
             };
             leavesData.push(newRec);
 
-            const localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v6") || "[]");
+            const localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v7") || "[]");
             localSaved.push(newRec);
-            localStorage.setItem("kgb_local_records_v6", JSON.stringify(localSaved));
+            localStorage.setItem("kgb_local_records_v7", JSON.stringify(localSaved));
 
             document.getElementById("slotSelectorBox").style.display = "none";
             document.getElementById("sel_" + pendingGroup).value = "";
@@ -624,19 +658,12 @@ HTML_CONTENT = """<!DOCTYPE html>
             renderAll();
         }
 
-        function customPromptSlot() {
-            const custom = prompt("Enter status / reason:", "外出開會");
-            if (custom !== null && custom.trim() !== "") {
-                confirmAddWithSlot(custom.trim());
-            }
-        }
-
         function removeRecord(id) {
             if (confirm("Delete this record?")) {
                 leavesData = leavesData.filter(x => x.id !== id);
-                let localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v6") || "[]");
+                let localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v7") || "[]");
                 localSaved = localSaved.filter(x => x.id !== id);
-                localStorage.setItem("kgb_local_records_v6", JSON.stringify(localSaved));
+                localStorage.setItem("kgb_local_records_v7", JSON.stringify(localSaved));
 
                 renderModalRecords();
                 renderAll();
@@ -679,7 +706,7 @@ HTML_CONTENT = """<!DOCTYPE html>
 def generate():
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(HTML_CONTENT)
-    print("SUCCESS: Generated index.html with live Apps Script API integration.")
+    print("SUCCESS: Generated index.html with JSONP Sheet integration and updated status buttons.")
 
 if __name__ == "__main__":
     generate()
