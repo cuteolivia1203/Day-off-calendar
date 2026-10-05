@@ -248,7 +248,7 @@
         </div>
     </div>
 
-    <!-- Main Grid (Starts from Current Month through Dec 2027) -->
+    <!-- Main Grid (Starts from Current Month to Dec 2027) -->
     <div class="calendar-grid-wrapper" id="mainCalendarGrid"></div>
 
     <!-- Modal: View & Quick Add -->
@@ -316,10 +316,8 @@
     </div>
 
     <script>
-        // Apps Script Web App Deployment URL
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyQ2pyXJZfAZVMA1SB8XJc2m3i4tdqTYJCwUa1KoGodr1tSwy_dfljN_CkGIGElA6Uo7Q/exec";
 
-        // Group Staff Definition (Richard & TsaiMing are in KGB220)
         let GROUPS_DATA = {
             "KGB200": ["Tony"],
             "KGB210": ["Esther", "Jasmin", "Sophie", "Edna", "Sandy", "Mars", "Helen", "Ann", "Harry", "Ming", "Dino"],
@@ -341,7 +339,6 @@
             return String(dateStr).trim();
         }
 
-        // Tag classification: 休假灰底白字，外出綠底白字，活動紫色
         function getStatusCategory(group, reason) {
             if (group === "Event" || (reason && (reason.includes("季會") || reason.includes("節") || reason.includes("公休")))) {
                 return "tag-event";
@@ -352,7 +349,6 @@
             return "tag-leave"; // 灰底白字
         }
 
-        // States & Date
         let currentFilter = 'ALL';
         let searchQuery = '';
         let activeDateKey = '';
@@ -363,7 +359,7 @@
         const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
         const today = new Date();
         const curY = today.getFullYear();
-        const curM = today.getMonth() + 1; // Current Month (1-12)
+        const curM = today.getMonth() + 1;
         const todayStr = `${curY}-${String(curM).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
 
         function setupDropdowns() {
@@ -430,7 +426,6 @@
             return html;
         }
 
-        // Render Immediately (Starts from CURRENT MONTH to Dec 2027)
         function renderAll() {
             const mainGrid = document.getElementById('mainCalendarGrid');
             if (!mainGrid) return;
@@ -444,8 +439,8 @@
             }
         }
 
-        // Process data returned from Apps Script
-        function processApiResponse(json) {
+        // JSONP Callback: 被 Apps Script 自動觸發
+        window.processApiResponse = function(json) {
             let loaded = [];
             if (!json) return;
 
@@ -499,36 +494,23 @@
 
             leavesData = loaded;
 
-            // Merge local added records
-            const localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v10") || "[]");
+            // 合併本地離線新增的項目
+            const localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v11") || "[]");
             localSaved.forEach(rec => leavesData.push(rec));
 
+            // 即時更新日曆標籤
             renderAll();
-        }
-
-        window.handleAppsScriptData = function(data) {
-            processApiResponse(data);
         };
 
-        // Fetch Live Data
-        async function fetchSheetData() {
-            try {
-                const response = await fetch(APPS_SCRIPT_URL, {
-                    method: 'GET',
-                    mode: 'cors',
-                    redirect: 'follow'
-                });
-                const json = await response.json();
-                processApiResponse(json);
-            } catch (err) {
-                console.warn("Direct fetch fallback to JSONP...", err);
-                const oldScript = document.getElementById("jsonpScript");
-                if (oldScript) oldScript.remove();
-                const script = document.createElement("script");
-                script.id = "jsonpScript";
-                script.src = APPS_SCRIPT_URL + (APPS_SCRIPT_URL.includes("?") ? "&" : "?") + "callback=handleAppsScriptData";
-                document.body.appendChild(script);
-            }
+        // 採用純 JSONP 方式向 Google Apps Script 要求資料（完全不受 CORS 與 302 轉址影響）
+        function fetchSheetData() {
+            const oldScript = document.getElementById("jsonpScript");
+            if (oldScript) oldScript.remove();
+
+            const script = document.createElement("script");
+            script.id = "jsonpScript";
+            script.src = APPS_SCRIPT_URL + (APPS_SCRIPT_URL.includes("?") ? "&" : "?") + "callback=processApiResponse";
+            document.body.appendChild(script);
         }
 
         function openDateModal(dateKey, formattedDate) {
@@ -595,9 +577,9 @@
             };
             leavesData.push(newRec);
 
-            const localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v10") || "[]");
+            const localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v11") || "[]");
             localSaved.push(newRec);
-            localStorage.setItem("kgb_local_records_v10", JSON.stringify(localSaved));
+            localStorage.setItem("kgb_local_records_v11", JSON.stringify(localSaved));
 
             document.getElementById("slotSelectorBox").style.display = "none";
             document.getElementById("sel_" + pendingGroup).value = "";
@@ -611,9 +593,9 @@
         function removeRecord(id) {
             if (confirm("Delete this record?")) {
                 leavesData = leavesData.filter(x => x.id !== id);
-                let localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v10") || "[]");
+                let localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v11") || "[]");
                 localSaved = localSaved.filter(x => x.id !== id);
-                localStorage.setItem("kgb_local_records_v10", JSON.stringify(localSaved));
+                localStorage.setItem("kgb_local_records_v11", JSON.stringify(localSaved));
 
                 renderModalRecords();
                 renderAll();
@@ -636,11 +618,9 @@
             renderAll();
         }
 
-        // 1. 初始化下拉選單
+        // 立即啟動
         setupDropdowns();
-        // 2. 立即繪製月曆（保證網頁打開立刻能看見月曆，絕不空白）
         renderAll();
-        // 3. 背景非同步向 Google Sheet 抓取最新休假資料
         fetchSheetData();
     </script>
 </body>
