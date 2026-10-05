@@ -1,6 +1,4 @@
-# update_calendar.py
-
-HTML_CONTENT = """<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -29,7 +27,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             --qa-250-bg: #e7f5ff;
             --qa-250-lbl: #3b82f6;
 
-            /* Button & Tag Styling according to revise.jpg */
+            /* Button & Tag Styling */
             --leave-green-bg: #1e7e34; /* Dark green */
             --outing-gray-bg: #495057; /* Dark gray */
             --tag-event-bg: #8b5cf6;   /* Events Purple */
@@ -222,7 +220,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         .lbl-250 { color: var(--qa-250-lbl); }
         .sel-250 { border: 1.8px solid var(--qa-250-border); background-color: var(--qa-250-bg); }
 
-        /* Status Selection Section (Revised as per revise.jpg) */
+        /* Status Selection Section (Revised as requested) */
         .slot-selector-box {
             display: none; background: #ffffff; border: 1.5px solid var(--border-color); border-radius: 14px;
             padding: 14px; margin-top: 10px; animation: fadeIn 0.2s ease-in;
@@ -233,14 +231,14 @@ HTML_CONTENT = """<!DOCTYPE html>
         .btn-section-label { font-size: 0.75rem; font-weight: 700; color: #64748b; margin: 6px 0 4px 0; text-transform: uppercase; }
         .slot-buttons-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
 
-        /* Dark Green Background, White Texts for 休假 */
+        /* Dark Green Background, White Texts for 休假 (3 options) */
         .btn-status-leave {
             background-color: var(--leave-green-bg); color: #ffffff; border: none; border-radius: 8px;
             padding: 7px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
         }
         .btn-status-leave:hover { opacity: 0.9; }
 
-        /* Dark Gray Background, White Texts for 外出 */
+        /* Dark Gray Background, White Texts for 外出 (4 options) */
         .btn-status-outing {
             background-color: var(--outing-gray-bg); color: #ffffff; border: none; border-radius: 8px;
             padding: 7px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
@@ -252,7 +250,7 @@ HTML_CONTENT = """<!DOCTYPE html>
 
     <!-- Header Navigation -->
     <div class="top-bar">
-        <div class="app-title">🗓️️ KGB200 Calendar</div>
+        <div class="app-title">🗓 KGB200 Calendar</div>
         <div class="filter-container">
             <button class="filter-btn btn-all active" onclick="setGroupFilter('ALL', this)">All</button>
             <button class="filter-btn btn-200" onclick="setGroupFilter('KGB200', this)">KGB200 Tony</button>
@@ -390,8 +388,8 @@ HTML_CONTENT = """<!DOCTYPE html>
             return "tag-leave";
         }
 
-        // Global JSONP Callback handler to bypass CORS
-        window.handleAppsScriptData = function(json) {
+        // Process data returned from Apps Script
+        function processApiResponse(json) {
             let loaded = [];
             if (!json) return;
 
@@ -448,32 +446,36 @@ HTML_CONTENT = """<!DOCTYPE html>
 
             leavesData = loaded;
 
-            // Merge local added records
-            const localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v7") || "[]");
+            // Merge locally added records
+            const localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v8") || "[]");
             localSaved.forEach(rec => leavesData.push(rec));
 
             renderAll();
-        };
+        }
 
-        // Fetch Live Data using JSONP (Guarantees Google Sheet data is fetched without CORS issues)
-        function fetchSheetData() {
-            // Remove previous script if existing
-            const oldScript = document.getElementById("jsonpScript");
-            if (oldScript) oldScript.remove();
-
-            const script = document.createElement("script");
-            script.id = "jsonpScript";
-            // Uses prefix callback to deliver data
-            const callbackParam = APPS_SCRIPT_URL.includes("?") ? "&callback=handleAppsScriptData" : "?callback=handleAppsScriptData";
-            script.src = APPS_SCRIPT_URL + callbackParam;
-            script.onerror = function() {
-                // If JSONP fails, fallback to direct fetch
-                fetch(APPS_SCRIPT_URL)
-                    .then(r => r.json())
-                    .then(data => window.handleAppsScriptData(data))
-                    .catch(e => console.error("Data load failed", e));
-            };
-            document.body.appendChild(script);
+        // Fetch Live Data with Redirect Handling
+        async function fetchSheetData() {
+            try {
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'GET',
+                    redirect: 'follow'
+                });
+                const json = await response.json();
+                processApiResponse(json);
+            } catch (err) {
+                console.warn("Direct fetch error, trying proxy...", err);
+                // Fallback attempt via standard CORS proxy if network is strictly blocked
+                try {
+                    const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(APPS_SCRIPT_URL);
+                    const res = await fetch(proxyUrl);
+                    const data = await res.json();
+                    const parsed = JSON.parse(data.contents);
+                    processApiResponse(parsed);
+                } catch(e) {
+                    console.error("Failed to load Google Sheet data", e);
+                    renderAll();
+                }
+            }
         }
 
         // States & Date
@@ -645,9 +647,9 @@ HTML_CONTENT = """<!DOCTYPE html>
             };
             leavesData.push(newRec);
 
-            const localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v7") || "[]");
+            const localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v8") || "[]");
             localSaved.push(newRec);
-            localStorage.setItem("kgb_local_records_v7", JSON.stringify(localSaved));
+            localStorage.setItem("kgb_local_records_v8", JSON.stringify(localSaved));
 
             document.getElementById("slotSelectorBox").style.display = "none";
             document.getElementById("sel_" + pendingGroup).value = "";
@@ -661,9 +663,9 @@ HTML_CONTENT = """<!DOCTYPE html>
         function removeRecord(id) {
             if (confirm("Delete this record?")) {
                 leavesData = leavesData.filter(x => x.id !== id);
-                let localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v7") || "[]");
+                let localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v8") || "[]");
                 localSaved = localSaved.filter(x => x.id !== id);
-                localStorage.setItem("kgb_local_records_v7", JSON.stringify(localSaved));
+                localStorage.setItem("kgb_local_records_v8", JSON.stringify(localSaved));
 
                 renderModalRecords();
                 renderAll();
@@ -695,18 +697,9 @@ HTML_CONTENT = """<!DOCTYPE html>
             renderAll();
         }
 
-        // Start
+        // Run
         setupDropdowns();
         fetchSheetData();
     </script>
 </body>
 </html>
-"""
-
-def generate():
-    with open("index.html", "w", encoding="utf-8") as f:
-        f.write(HTML_CONTENT)
-    print("SUCCESS: Generated index.html with JSONP Sheet integration and updated status buttons.")
-
-if __name__ == "__main__":
-    generate()
