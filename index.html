@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KGB200 Calendar</title>
-    <!-- 引入 Google 官方視覺化庫，原生支援試算表跨網域安全讀取 -->
-    <script src="https://www.gstatic.com/charts/loader.js"></script>
     <style>
         :root {
             --bg-color: #f8fafc;
@@ -30,7 +28,7 @@
             --qa-250-lbl: #3b82f6;
 
             /* Button & Tag Styling: 休假淺30%質感灰，外出綠底白字 */
-            --leave-gray-bg: #8e9ba8;  /* 淺約30%溫和灰 */
+            --leave-gray-bg: #8e9ba8;  /* 淺約30%的溫和中灰 */
             --outing-green-bg: #15803d; /* 綠背景 */
             --tag-event-bg: #8b5cf6;   /* Events 紫色 */
 
@@ -72,7 +70,7 @@
         }
         .refresh-btn:hover { background: #f1f5f9; }
 
-        /* Main Calendar Grid: 5 Columns, starting from Current Month */
+        /* Main Calendar Grid: 5 Columns, starting directly from Current Month */
         .calendar-grid-wrapper {
             width: 100%;
             display: grid;
@@ -111,7 +109,7 @@
         .month-days-grid {
             display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
         }
-        /* 自動伸展高度，不壓扁疊加人名 */
+        /* 格子自動依內容彈性拉長，不壓扁人名 */
         .day-cell {
             min-height: 54px;
             height: auto;
@@ -132,7 +130,7 @@
             box-shadow: 0 0 8px rgba(255, 140, 0, 0.45) !important;
         }
 
-        /* Tags Container */
+        /* Tags Container: 自動排列不擠壓 */
         .tags-container {
             width: 100%; display: flex; flex-direction: column; gap: 2px;
         }
@@ -142,8 +140,8 @@
             text-align: center; font-weight: 700; color: #ffffff !important;
             cursor: pointer; line-height: 1.15;
         }
-        .tag-leave  { background-color: var(--leave-gray-bg) !important; }  /* 灰底白字 */
-        .tag-outing { background-color: var(--outing-green-bg) !important; } /* 綠底白字 */
+        .tag-leave  { background-color: var(--leave-gray-bg) !important; }  /* 淺30%灰底白字 */
+        .tag-outing { background-color: var(--outing-green-bg) !important; } /* 外出綠底白字 */
         .tag-event  { background-color: var(--tag-event-bg) !important; }   /* 紫色 */
 
         /* Modal Styles */
@@ -183,7 +181,7 @@
             color: #ef4444; cursor: pointer; border: none; background: transparent; font-size: 0.85rem; padding: 2px 6px;
         }
 
-        /* Quick Add Area */
+        /* Quick Add Area: Colored Dropdowns */
         .quick-add-title {
             font-size: 0.92rem; font-weight: 700; color: #64748b; margin-bottom: 12px;
         }
@@ -194,4 +192,453 @@
             display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 6px;
         }
         .group-select-block select {
-            width: 100%; height: 42px
+            width: 100%; height: 42px; border-radius: 12px; padding: 0 10px; font-size: 0.9rem;
+            outline: none; cursor: pointer; transition: all 0.2s;
+        }
+        
+        .lbl-200 { color: var(--qa-200-lbl); }
+        .sel-200 { border: 1.8px solid var(--qa-200-border); background-color: var(--qa-200-bg); }
+        
+        .lbl-210 { color: var(--qa-210-lbl); }
+        .sel-210 { border: 1.8px solid var(--qa-210-border); background-color: var(--qa-210-bg); }
+
+        .lbl-220 { color: var(--qa-220-lbl); }
+        .sel-220 { border: 1.8px solid var(--qa-220-border); background-color: var(--qa-220-bg); }
+
+        .lbl-250 { color: var(--qa-250-lbl); }
+        .sel-250 { border: 1.8px solid var(--qa-250-border); background-color: var(--qa-250-bg); }
+
+        /* Status Selection Section */
+        .slot-selector-box {
+            display: none; background: #ffffff; border: 1.5px solid var(--border-color); border-radius: 14px;
+            padding: 14px; margin-top: 10px; animation: fadeIn 0.2s ease-in;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+        .slot-title { font-size: 0.85rem; font-weight: 700; color: #334155; margin-bottom: 10px; }
+        
+        .btn-section-label { font-size: 0.75rem; font-weight: 700; color: #64748b; margin: 6px 0 4px 0; text-transform: uppercase; }
+        .slot-buttons-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+
+        /* 灰背景白字：休假 (淺約30%) */
+        .btn-status-leave {
+            background-color: var(--leave-gray-bg); color: #ffffff; border: none; border-radius: 8px;
+            padding: 7px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
+        }
+        .btn-status-leave:hover { opacity: 0.9; }
+
+        /* 綠背景白字：外出 (4種) */
+        .btn-status-outing {
+            background-color: var(--outing-green-bg); color: #ffffff; border: none; border-radius: 8px;
+            padding: 7px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
+        }
+        .btn-status-outing:hover { opacity: 0.9; }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <div class="top-bar">
+        <div class="app-title">🗓️ KGB200 Calendar</div>
+        <div class="filter-container">
+            <button class="filter-btn btn-all active" onclick="setGroupFilter('ALL', this)">All</button>
+            <button class="filter-btn btn-200" onclick="setGroupFilter('KGB200', this)">KGB200 Tony</button>
+            <button class="filter-btn btn-210" onclick="setGroupFilter('KGB210', this)">KGB210 Visual Design</button>
+            <button class="filter-btn btn-220" onclick="setGroupFilter('KGB220', this)">KGB220 Video</button>
+            <button class="filter-btn btn-250" onclick="setGroupFilter('KGB250', this)">KGB250 Creative Ops.</button>
+            <button class="filter-btn btn-event" onclick="setGroupFilter('Event', this)">Events</button>
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <input type="text" id="searchInput" class="search-input" placeholder="Search Name..." oninput="handleSearch()">
+            <button class="refresh-btn" onclick="loadAllSheetData()">Refresh</button>
+        </div>
+    </div>
+
+    <!-- Main Grid (Starts directly from Current Month to Dec 2027) -->
+    <div class="calendar-grid-wrapper" id="mainCalendarGrid"></div>
+
+    <!-- Modal: View & Quick Add -->
+    <div class="modal-mask" id="actionModal" onclick="if(event.target===this) closeModal()">
+        <div class="modal-card-box">
+            <div class="modal-header-row">
+                <div class="modal-date-title">📍 <span id="modalDateDisplay">Date</span></div>
+                <button class="modal-close-icon" onclick="closeModal()">×</button>
+            </div>
+
+            <!-- Existing records list -->
+            <div class="records-card" id="recordsListContainer"></div>
+
+            <!-- Quick Add Area -->
+            <div class="quick-add-title">Quick Add:</div>
+            <div class="quick-add-grid">
+                <div class="group-select-block">
+                    <label class="lbl-200">KGB200 Tony</label>
+                    <select id="sel_KGB200" class="sel-200" onchange="onMemberSelected('KGB200', this)">
+                        <option value="">-- Select --</option>
+                    </select>
+                </div>
+                <div class="group-select-block">
+                    <label class="lbl-210">KGB210 Visual Design</label>
+                    <select id="sel_KGB210" class="sel-210" onchange="onMemberSelected('KGB210', this)">
+                        <option value="">-- Select --</option>
+                    </select>
+                </div>
+                <div class="group-select-block">
+                    <label class="lbl-220">KGB220 Video</label>
+                    <select id="sel_KGB220" class="sel-220" onchange="onMemberSelected('KGB220', this)">
+                        <option value="">-- Select --</option>
+                    </select>
+                </div>
+                <div class="group-select-block">
+                    <label class="lbl-250">KGB250 Creative Ops.</label>
+                    <select id="sel_KGB250" class="sel-250" onchange="onMemberSelected('KGB250', this)">
+                        <option value="">-- Select --</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Status Buttons Section -->
+            <div class="slot-selector-box" id="slotSelectorBox">
+                <div class="slot-title">Select status for <strong id="selectedMemberNameText"></strong>:</div>
+                
+                <!-- 灰底白字：休假 (淺約30%) -->
+                <div class="btn-section-label">休假 (Leave)</div>
+                <div class="slot-buttons-grid">
+                    <button class="btn-status-leave" onclick="confirmAddWithSlot('上午休')">上午休</button>
+                    <button class="btn-status-leave" onclick="confirmAddWithSlot('下午休')">下午休</button>
+                    <button class="btn-status-leave" onclick="confirmAddWithSlot('全天休')">全天休</button>
+                </div>
+
+                <!-- 綠底白字：外出 (4種) -->
+                <div class="btn-section-label">外出 (Outing)</div>
+                <div class="slot-buttons-grid">
+                    <button class="btn-status-outing" onclick="confirmAddWithSlot('上午外出')">上午外出</button>
+                    <button class="btn-status-outing" onclick="confirmAddWithSlot('下午外出')">下午外出</button>
+                    <button class="btn-status-outing" onclick="confirmAddWithSlot('全天外出')">全天外出</button>
+                    <button class="btn-status-outing" onclick="confirmAddWithSlot('國外出差')">國外出差</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 試算表 ID
+        const SHEET_ID = "1tQsk8QA9hd-xlgEzXe5uImGJy6WIEb0p9igklTlmKZw";
+
+        // 成員分組（Richard & TsaiMing 已歸入 KGB220）
+        let GROUPS_DATA = {
+            "KGB200": ["Tony"],
+            "KGB210": ["Esther", "Jasmin", "Sophie", "Edna", "Sandy", "Mars", "Helen", "Ann", "Harry", "Ming", "Dino"],
+            "KGB220": ["Ben", "Kiwi", "Brade", "Alice", "Cooper", "Richard", "TsaiMing"],
+            "KGB250": ["Vivian", "Sylvia", "Kathryn", "Jeff"]
+        };
+
+        let leavesData = [];
+
+        function parseDateStandard(dateStr) {
+            if (!dateStr) return "";
+            const parts = String(dateStr).replace(/\//g, '-').split('-');
+            if (parts.length === 3) {
+                const y = parts[0].trim();
+                const m = parts[1].trim().padStart(2, '0');
+                const d = parts[2].trim().padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            }
+            return String(dateStr).trim();
+        }
+
+        // 分類：休假灰底白字，外出綠底白字，Events紫色
+        function getStatusCategory(group, reason) {
+            if (group === "Event" || (reason && (reason.includes("季會") || reason.includes("節") || reason.includes("補假") || reason.includes("展") || reason.includes("GPC") || reason.includes("IFA") || reason.includes("Computex") || reason.includes("GMM") || reason.includes("尾牙") || reason.includes("初")))) {
+                return "tag-event";
+            }
+            if (reason && (reason.includes("外出") || reason.includes("出差") || reason.includes("Outing") || reason.includes("Trip"))) {
+                return "tag-outing"; // 綠底白字
+            }
+            return "tag-leave"; // 灰底白字
+        }
+
+        let currentFilter = 'ALL';
+        let searchQuery = '';
+        let activeDateKey = '';
+        let activeDateFormatted = '';
+        let pendingMember = null;
+        let pendingGroup = null;
+
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const today = new Date();
+        const curY = today.getFullYear();
+        const curM = today.getMonth() + 1; // 1-12
+        const todayStr = `${curY}-${String(curM).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+        function setupDropdowns() {
+            for (let grp in GROUPS_DATA) {
+                const sel = document.getElementById("sel_" + grp);
+                if (!sel) continue;
+                sel.innerHTML = '<option value="">-- Select --</option>';
+                GROUPS_DATA[grp].forEach(name => {
+                    const opt = document.createElement("option");
+                    opt.value = name;
+                    opt.textContent = name;
+                    sel.appendChild(opt);
+                });
+            }
+        }
+
+        function renderMonthCalendar(year, month) {
+            const firstDayIndex = new Date(year, month - 1, 1).getDay();
+            const daysInMonth = new Date(year, month, 0).getDate();
+            const title = `${monthNames[month - 1]} ${year}`;
+
+            let html = `
+            <div class="month-box">
+                <div class="month-title">${title}</div>
+                <div class="days-header">
+                    <div class="day-label">Sun</div><div class="day-label">Mon</div>
+                    <div class="day-label">Tue</div><div class="day-label">Wed</div>
+                    <div class="day-label">Thu</div><div class="day-label">Fri</div>
+                    <div class="day-label">Sat</div>
+                </div>
+                <div class="month-days-grid">
+            `;
+
+            for (let i = 0; i < firstDayIndex; i++) {
+                html += `<div class="day-cell empty"></div>`;
+            }
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateKey = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const isToday = (dateKey === todayStr);
+                const cellClass = isToday ? 'day-cell is-today' : 'day-cell';
+
+                const matched = leavesData.filter(item => {
+                    const matchDate = (item.date === dateKey);
+                    const matchGroup = (currentFilter === 'ALL' || item.group === currentFilter);
+                    const matchSearch = (!searchQuery || item.name.toLowerCase().includes(searchQuery));
+                    return matchDate && matchGroup && matchSearch;
+                });
+
+                let tagsMarkup = '';
+                matched.forEach(item => {
+                    const tagCategory = getStatusCategory(item.group, item.reason);
+                    tagsMarkup += `<div class="person-tag ${tagCategory}" title="${item.name}: ${item.reason || ''}">${item.name}</div>`;
+                });
+
+                html += `
+                <div class="${cellClass}" onclick="openDateModal('${dateKey}', '${monthNames[month-1]} ${d}, ${year}')">
+                    <span class="day-number">${d}</span>
+                    <div class="tags-container">${tagsMarkup}</div>
+                </div>`;
+            }
+
+            html += `</div></div>`;
+            return html;
+        }
+
+        function renderAll() {
+            const mainGrid = document.getElementById('mainCalendarGrid');
+            if (!mainGrid) return;
+            mainGrid.innerHTML = '';
+
+            let mainYear = curY, mainMonth = curM;
+            while (mainYear < 2027 || (mainYear === 2027 && mainMonth <= 12)) {
+                mainGrid.innerHTML += renderMonthCalendar(mainYear, mainMonth);
+                mainMonth++;
+                if (mainMonth > 12) { mainMonth = 1; mainYear++; }
+            }
+        }
+
+        // ==========================================
+        // Google Sheet 官方標準 Gviz API 直連
+        // ==========================================
+        let loadedLeaves = [];
+        let loadedEvents = [];
+
+        function parseGvizResponse(rawText) {
+            const start = rawText.indexOf('{');
+            const end = rawText.lastIndexOf('}');
+            if (start !== -1 && end !== -1) {
+                return JSON.parse(rawText.substring(start, end + 1));
+            }
+            return null;
+        }
+
+        async function fetchSheetTab(sheetName) {
+            const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
+            const res = await fetch(url);
+            const text = await res.text();
+            return parseGvizResponse(text);
+        }
+
+        async function loadAllSheetData() {
+            try {
+                // 1. 讀取 Leaves
+                const leavesJson = await fetchSheetTab("Leaves");
+                if (leavesJson && leavesJson.table && leavesJson.table.rows) {
+                    loadedLeaves = [];
+                    leavesJson.table.rows.forEach((r, idx) => {
+                        const c = r.c;
+                        if (c && c[0] && c[2]) {
+                            const name = c[0].v ? String(c[0].v).trim() : '';
+                            let group = c[1] && c[1].v ? String(c[1].v).trim() : '';
+                            const date = parseDateStandard(c[2].f || c[2].v);
+                            const status = c[5] && c[5].v ? String(c[5].v).trim() : (c[3] && c[3].v ? String(c[3].v).trim() : '全天休');
+
+                            if (name === "Richard" || name === "TsaiMing") group = "KGB220";
+                            if (name && date) {
+                                loadedLeaves.push({
+                                    id: "leaf_" + idx,
+                                    name: name,
+                                    group: group,
+                                    date: date,
+                                    reason: status
+                                });
+                            }
+                        }
+                    });
+                }
+
+                // 2. 讀取 Events
+                const eventsJson = await fetchSheetTab("Events");
+                if (eventsJson && eventsJson.table && eventsJson.table.rows) {
+                    loadedEvents = [];
+                    eventsJson.table.rows.forEach((r, idx) => {
+                        const c = r.c;
+                        if (c && c[0] && c[1]) {
+                            const date = parseDateStandard(c[0].f || c[0].v);
+                            const act = c[1].v ? String(c[1].v).trim() : '';
+                            if (date && act) {
+                                loadedEvents.push({
+                                    id: "event_" + idx,
+                                    name: act,
+                                    group: "Event",
+                                    date: date,
+                                    reason: act
+                                });
+                            }
+                        }
+                    });
+                }
+
+                leavesData = [...loadedEvents, ...loadedLeaves];
+
+                const localSaved = JSON.parse(localStorage.getItem("kgb_user_records_final") || "[]");
+                localSaved.forEach(rec => leavesData.push(rec));
+
+                renderAll();
+            } catch (err) {
+                console.warn("Sheet Gviz loading...", err);
+            }
+        }
+
+        function openDateModal(dateKey, formattedDate) {
+            activeDateKey = dateKey;
+            activeDateFormatted = formattedDate;
+            document.getElementById("modalDateDisplay").textContent = formattedDate;
+            document.getElementById("slotSelectorBox").style.display = "none";
+            renderModalRecords();
+            document.getElementById("actionModal").style.display = "flex";
+        }
+
+        function renderModalRecords() {
+            const container = document.getElementById("recordsListContainer");
+            container.innerHTML = '';
+
+            const dayRecords = leavesData.filter(x => x.date === activeDateKey);
+            if (dayRecords.length === 0) {
+                container.innerHTML = '<div style="color:#94a3b8; font-size:0.9rem;">No leaves or events on this date.</div>';
+                return;
+            }
+
+            dayRecords.forEach(rec => {
+                const row = document.createElement("div");
+                row.className = "record-row";
+                
+                const cat = getStatusCategory(rec.group, rec.reason);
+                let reasonClass = "rec-reason-leave";
+                if (cat === "tag-outing") reasonClass = "rec-reason-outing";
+                if (cat === "tag-event") reasonClass = "rec-reason-event";
+
+                row.innerHTML = `
+                    <div>
+                        <span class="rec-name">${rec.name}</span>: 
+                        <span class="${reasonClass}">${rec.reason || '全天休'}</span>
+                    </div>
+                    <button class="rec-del-btn" onclick="removeRecord('${rec.id}')">✕</button>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function onMemberSelected(group, selectElement) {
+            const memberName = selectElement.value;
+            if (!memberName) {
+                document.getElementById("slotSelectorBox").style.display = "none";
+                return;
+            }
+            pendingMember = memberName;
+            pendingGroup = group;
+            
+            document.getElementById("selectedMemberNameText").textContent = `${memberName} (${group})`;
+            document.getElementById("slotSelectorBox").style.display = "block";
+        }
+
+        function confirmAddWithSlot(slotName) {
+            if (!pendingMember || !pendingGroup) return;
+
+            const newRec = {
+                id: "local_" + Date.now(),
+                name: pendingMember,
+                group: pendingGroup,
+                date: activeDateKey,
+                reason: slotName
+            };
+            leavesData.push(newRec);
+
+            const localSaved = JSON.parse(localStorage.getItem("kgb_user_records_final") || "[]");
+            localSaved.push(newRec);
+            localStorage.setItem("kgb_user_records_final", JSON.stringify(localSaved));
+
+            document.getElementById("slotSelectorBox").style.display = "none";
+            document.getElementById("sel_" + pendingGroup).value = "";
+            pendingMember = null;
+            pendingGroup = null;
+
+            renderModalRecords();
+            renderAll();
+        }
+
+        function removeRecord(id) {
+            if (confirm("Delete this record?")) {
+                leavesData = leavesData.filter(x => x.id !== id);
+                let localSaved = JSON.parse(localStorage.getItem("kgb_user_records_final") || "[]");
+                localSaved = localSaved.filter(x => x.id !== id);
+                localStorage.setItem("kgb_user_records_final", JSON.stringify(localSaved));
+
+                renderModalRecords();
+                renderAll();
+            }
+        }
+
+        function closeModal() {
+            document.getElementById("actionModal").style.display = "none";
+            document.getElementById("slotSelectorBox").style.display = "none";
+        }
+
+        function setGroupFilter(group, btn) {
+            currentFilter = group;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderAll();
+        }
+        function handleSearch() {
+            searchQuery = document.getElementById("searchInput").value.trim().toLowerCase();
+            renderAll();
+        }
+
+        // 初始化
+        setupDropdowns();
+        renderAll();
+        loadAllSheetData();
+    </script>
+</body>
+</html>
