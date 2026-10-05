@@ -1,5 +1,5 @@
 # update_calendar.py
-# Run this script to generate the updated index.html for your GitHub repository.
+# 執行此腳本即可生成包含 Quick Add 彈窗、歷史紀錄保護與 4 欄排版的 index.html
 
 HTML_CONTENT = """<!DOCTYPE html>
 <html lang="en">
@@ -13,17 +13,15 @@ HTML_CONTENT = """<!DOCTYPE html>
             --border-color: #e2e8f0;
             --text-color: #334155;
             
-            /* Group Colors matching your original mockup */
-            --color-all: #475569;
-            --color-200: #ff6b6b;
-            --color-210: #4ecdc4;
-            --color-220: #feca57;
-            --color-250: #54a0ff;
-            --color-event: #a855f7;
+            --c-200: #ff6b6b;
+            --c-210: #20c997;
+            --c-220: #f59e0b;
+            --c-250: #3b82f6;
+            --c-event: #8b5cf6;
             --today-orange: #FF8C00;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background: var(--bg-color); color: var(--text-color); padding: 16px 24px; }
 
         /* Top Bar */
@@ -41,12 +39,12 @@ HTML_CONTENT = """<!DOCTYPE html>
         .filter-btn:hover { opacity: 0.9; transform: translateY(-1px); }
         .filter-btn.active { outline: 2.5px solid #1e293b; outline-offset: 1px; }
         
-        .btn-all { background: var(--color-all); }
-        .btn-200 { background: var(--color-200); }
-        .btn-210 { background: var(--color-210); }
-        .btn-220 { background: var(--color-220); color: #1e293b; }
-        .btn-250 { background: var(--color-250); }
-        .btn-event { background: var(--color-event); }
+        .btn-all { background: #475569; }
+        .btn-200 { background: var(--c-200); }
+        .btn-210 { background: var(--c-210); }
+        .btn-220 { background: var(--c-220); color: #ffffff; }
+        .btn-250 { background: var(--c-250); }
+        .btn-event { background: var(--c-event); }
 
         .search-input {
             border: 1px solid var(--border-color); border-radius: 8px; padding: 6px 12px;
@@ -61,7 +59,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         /* Main Layout */
         .content-layout { display: flex; gap: 20px; align-items: flex-start; }
 
-        /* Left Sidebar: Archived Past Months */
+        /* Left Sidebar: Past Months */
         .sidebar-past {
             width: 95px; flex-shrink: 0; display: flex; flex-direction: column; gap: 8px;
             max-height: calc(100vh - 120px); overflow-y: auto; padding-right: 2px;
@@ -73,7 +71,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         }
         .past-month-btn:hover { background: #f1f5f9; color: #1e293b; border-color: #cbd5e1; }
 
-        /* Right Grid: 4 Columns per Row, Vertical Scroll */
+        /* Right Calendar: 4 Columns Grid */
         .calendar-grid-wrapper {
             flex-grow: 1;
             display: grid;
@@ -92,7 +90,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             .calendar-grid-wrapper { grid-template-columns: 1fr; }
         }
 
-        /* Monthly Calendar Card */
+        /* Month Card */
         .month-box {
             background: #ffffff; border-radius: 14px; border: 1px solid var(--border-color);
             padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); display: flex; flex-direction: column;
@@ -120,14 +118,14 @@ HTML_CONTENT = """<!DOCTYPE html>
         .day-cell.empty { border: none; background: transparent; cursor: default; }
         .day-number { font-weight: 700; font-size: 0.72rem; color: #475569; margin-bottom: 2px; }
 
-        /* The Today Glowing Orange Border */
+        /* Today Border */
         .day-cell.is-today {
             border: 2px solid var(--today-orange) !important;
             background: #fffaf0 !important;
             box-shadow: 0 0 8px rgba(255, 140, 0, 0.45) !important;
         }
 
-        /* Original Pill Badges for Leave Names */
+        /* Leave Pill Badges */
         .tags-container {
             width: 100%; display: flex; flex-direction: column; gap: 2px; overflow-y: auto;
         }
@@ -135,42 +133,73 @@ HTML_CONTENT = """<!DOCTYPE html>
             width: 100%; font-size: 0.6rem; padding: 1.5px 2px; border-radius: 3px;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
             text-align: center; font-weight: 700; color: #ffffff;
-            cursor: pointer; background: #94a3b8; /* Default grey badge */
+            cursor: pointer; background: #94a3b8;
         }
-        /* Group Specific Badges (preserving your mockup styles) */
-        .tag-KGB200 { background: var(--color-200); }
+        .tag-KGB200 { background: var(--c-200); }
         .tag-KGB210 { background: #10b981; }
-        .tag-KGB220 { background: #f59e0b; color: #ffffff; }
-        .tag-KGB250 { background: var(--color-250); }
-        .tag-Event { background: var(--color-event); }
-        .tag-default { background: #94a3b8; }
+        .tag-KGB220 { background: #f59e0b; }
+        .tag-KGB250 { background: var(--c-250); }
+        .tag-Event { background: var(--c-event); }
 
-        /* Modals */
+        /* Modal Styles (Matches example.png) */
         .modal-mask {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(15, 23, 42, 0.45); z-index: 999; justify-content: center; align-items: center;
         }
-        .modal-window {
-            background: #ffffff; border-radius: 16px; padding: 22px; width: 90%; max-width: 420px;
-            box-shadow: 0 15px 30px rgba(0,0,0,0.15); max-height: 90vh; overflow-y: auto;
+        .modal-card-box {
+            background: #ffffff; border-radius: 16px; padding: 20px 24px; width: 92%; max-width: 480px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.18); position: relative; max-height: 90vh; overflow-y: auto;
         }
-        .modal-heading { font-weight: 700; font-size: 1.1rem; color: #1e293b; margin-bottom: 16px; }
-        .form-group { margin-bottom: 14px; }
-        .form-group label { display: block; font-size: 0.8rem; font-weight: 700; color: #64748b; margin-bottom: 4px; text-transform: uppercase; }
-        .form-group select, .form-group input {
-            width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.9rem; outline: none;
+        .modal-header-row {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;
         }
-        .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
-        .btn-submit { flex: 1; background: #2563eb; color: white; border: none; border-radius: 8px; padding: 9px; font-weight: 600; cursor: pointer; }
-        .btn-cancel { flex: 1; background: #f1f5f9; color: #475569; border: none; border-radius: 8px; padding: 9px; font-weight: 600; cursor: pointer; }
-        
-        .record-card {
-            background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 12px;
-            display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+        .modal-date-title {
+            font-size: 1.25rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 6px;
         }
-        .btn-delete-rec {
-            background: #ef4444; color: white; border: none; border-radius: 6px; padding: 4px 10px; font-size: 0.75rem; font-weight: 600; cursor: pointer;
+        .modal-close-icon {
+            font-size: 1.4rem; color: #94a3b8; cursor: pointer; border: none; background: transparent; font-weight: bold;
         }
+        .modal-close-icon:hover { color: #475569; }
+
+        /* Existing Records Card */
+        .records-card {
+            background: #ffffff; border: 1.5px solid #edf2f7; border-radius: 14px;
+            padding: 16px; min-height: 70px; margin-bottom: 18px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        .record-row {
+            font-size: 0.95rem; display: flex; justify-content: space-between; align-items: center;
+        }
+        .record-row .rec-name { font-weight: 700; }
+        .record-row .rec-reason { margin-left: 4px; color: #334155; }
+        .rec-del-btn {
+            color: #ef4444; cursor: pointer; border: none; background: transparent; font-size: 0.85rem; padding: 2px 6px;
+        }
+
+        /* Quick Add Area */
+        .quick-add-title {
+            font-size: 0.92rem; font-weight: 700; color: #64748b; margin-bottom: 12px;
+        }
+        .quick-add-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+        }
+        .group-select-block label {
+            display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 6px;
+        }
+        .group-select-block select {
+            width: 100%; height: 42px; border-radius: 10px; padding: 0 10px; font-size: 0.88rem;
+            outline: none; cursor: pointer; background: #ffffff; transition: border-color 0.2s;
+        }
+        /* Specific borders & label colors */
+        .lbl-200 { color: #ff6b6b; }
+        .sel-200 { border: 1.8px solid #ff7979; background: #fffdfd; }
+        .lbl-210 { color: #20c997; }
+        .sel-210 { border: 1.8px solid #48dbfb; background: #fafdff; }
+        .lbl-220 { color: #f59e0b; }
+        .sel-220 { border: 1.8px solid #feca57; background: #fffdf5; }
+        .lbl-250 { color: #3b82f6; }
+        .sel-250 { border: 1.8px solid #54a0ff; background: #f6faff; }
     </style>
 </head>
 <body>
@@ -183,7 +212,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             <button class="filter-btn btn-200" onclick="setGroupFilter('KGB200', this)">KGB200 Tony</button>
             <button class="filter-btn btn-210" onclick="setGroupFilter('KGB210', this)">KGB210 Visual Design</button>
             <button class="filter-btn btn-220" onclick="setGroupFilter('KGB220', this)">KGB220 Video</button>
-            <button class="filter-btn btn-250" onclick="setGroupFilter('KGB250', this)">KGB250 Creative Ops</button>
+            <button class="filter-btn btn-250" onclick="setGroupFilter('KGB250', this)">KGB250 Creative Ops.</button>
             <button class="filter-btn btn-event" onclick="setGroupFilter('Event', this)">Events</button>
         </div>
         <div style="display: flex; gap: 8px;">
@@ -192,146 +221,193 @@ HTML_CONTENT = """<!DOCTYPE html>
         </div>
     </div>
 
-    <!-- Main Layout -->
+    <!-- Main Content -->
     <div class="content-layout">
-        <!-- Left: Archived Past Months -->
+        <!-- Left: Past Months -->
         <div class="sidebar-past" id="pastMonthsContainer"></div>
 
-        <!-- Right: Active & Future Months (4 Cols, Vertical Scroll) -->
+        <!-- Right: Main 4-Column Grid -->
         <div class="calendar-grid-wrapper" id="mainCalendarGrid"></div>
     </div>
 
-    <!-- Modal 1: Add Record -->
-    <div class="modal-mask" id="addModal" onclick="if(event.target===this) closeAddModal()">
-        <div class="modal-window">
-            <div class="modal-heading">Add Off / Outing</div>
-            <div class="form-group">
-                <label>Date</label>
-                <input type="text" id="addDateInput" readonly style="background:#f1f5f9;">
+    <!-- Modal: View & Quick Add (Exact mockup from example.png) -->
+    <div class="modal-mask" id="actionModal" onclick="if(event.target===this) closeModal()">
+        <div class="modal-card-box">
+            <div class="modal-header-row">
+                <div class="modal-date-title">📍 <span id="modalDateDisplay">Mar 9, 2026</span></div>
+                <button class="modal-close-icon" onclick="closeModal()">×</button>
             </div>
-            <div class="form-group">
-                <label>Member</label>
-                <select id="staffSelect" onchange="onStaffSelected()">
-                    <option value="">-- Select Member --</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Group</label>
-                <input type="text" id="groupInput" readonly style="background:#f1f5f9;">
-            </div>
-            <div class="form-group">
-                <label>Note / Reason (Optional)</label>
-                <input type="text" id="reasonInput" placeholder="e.g. Vacation, Half-day, Meeting">
-            </div>
-            <div class="modal-actions">
-                <button class="btn-submit" onclick="submitLeave()">Confirm</button>
-                <button class="btn-cancel" onclick="closeAddModal()">Cancel</button>
+
+            <!-- List of existing leaves -->
+            <div class="records-card" id="recordsListContainer"></div>
+
+            <!-- Quick Add Dropdowns -->
+            <div class="quick-add-title">Quick Add:</div>
+            <div class="quick-add-grid">
+                <!-- KGB200 -->
+                <div class="group-select-block">
+                    <label class="lbl-200">KGB200 Tony</label>
+                    <select id="sel_KGB200" class="sel-200" onchange="handleQuickAdd('KGB200', this)">
+                        <option value="">-- Select --</option>
+                    </select>
+                </div>
+                <!-- KGB210 -->
+                <div class="group-select-block">
+                    <label class="lbl-210">KGB210 Visual Design</label>
+                    <select id="sel_KGB210" class="sel-210" onchange="handleQuickAdd('KGB210', this)">
+                        <option value="">-- Select --</option>
+                    </select>
+                </div>
+                <!-- KGB220 -->
+                <div class="group-select-block">
+                    <label class="lbl-220">KGB220 Video</label>
+                    <select id="sel_KGB220" class="sel-220" onchange="handleQuickAdd('KGB220', this)">
+                        <option value="">-- Select --</option>
+                    </select>
+                </div>
+                <!-- KGB250 -->
+                <div class="group-select-block">
+                    <label class="lbl-250">KGB250 Creative Ops.</label>
+                    <select id="sel_KGB250" class="sel-250" onchange="handleQuickAdd('KGB250', this)">
+                        <option value="">-- Select --</option>
+                    </select>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal 2: View & Manage Day Records -->
-    <div class="modal-mask" id="detailModal" onclick="if(event.target===this) closeDetailModal()">
-        <div class="modal-window">
-            <div class="modal-heading" id="detailModalHeading">Day Records</div>
-            <div id="detailRecordsList"></div>
-            <button class="btn-submit" style="margin-top:12px; width:100%;" onclick="openAddFromDetail()">+ Add Person for this Date</button>
-            <button class="btn-cancel" style="margin-top:8px; width:100%;" onclick="closeDetailModal()">Close</button>
-        </div>
-    </div>
-
-    <!-- Modal 3: Show Past Month Calendar -->
+    <!-- Modal: Left Past Month Calendar -->
     <div class="modal-mask" id="historyModal" onclick="if(event.target===this) closeHistoryModal()">
-        <div class="modal-window" style="max-width: 380px;">
+        <div class="modal-card-box" style="max-width: 400px;">
+            <div class="modal-header-row">
+                <div class="modal-date-title" id="historyModalTitle">Calendar</div>
+                <button class="modal-close-icon" onclick="closeHistoryModal()">×</button>
+            </div>
             <div id="historyCalendarWrapper"></div>
-            <button class="btn-cancel" style="margin-top:14px; width:100%;" onclick="closeHistoryModal()">Close</button>
         </div>
     </div>
 
     <script>
-        // 1. Staff Members (Richard & TsaiMing are in KGB220)
-        const STAFF_MEMBERS = [
-            { name: "Tony", group: "KGB200" },
-            { name: "Esther", group: "KGB210" },
-            { name: "Jasmin", group: "KGB210" },
-            { name: "Sophie", group: "KGB210" },
-            { name: "Edna", group: "KGB210" },
-            { name: "Sandy", group: "KGB210" },
-            { name: "Mars", group: "KGB210" },
-            { name: "Helen", group: "KGB210" },
-            { name: "Ann", group: "KGB210" },
-            { name: "Harry", group: "KGB210" },
-            { name: "Ming", group: "KGB210" },
-            { name: "Dino", group: "KGB210" },
-            { name: "Ben", group: "KGB220" },
-            { name: "Kiwi", group: "KGB220" },
-            { name: "Brade", group: "KGB220" },
-            { name: "Alice", group: "KGB220" },
-            { name: "Emma", group: "KGB220" },
-            { name: "Danny", group: "KGB220" },
-            { name: "Cooper", group: "KGB220" },
-            { name: "Richard", group: "KGB220" },
-            { name: "TsaiMing", group: "KGB220" },
-            { name: "Vivian", group: "KGB250" },
-            { name: "Sylvia", group: "KGB250" },
-            { name: "Kathryn", group: "KGB250" },
-            { name: "Jeff", group: "KGB250" }
+        // 1. Members Definition
+        const GROUPS_DATA = {
+            "KGB200": ["Tony"],
+            "KGB210": ["Esther", "Jasmin", "Sophie", "Edna", "Sandy", "Mars", "Helen", "Ann", "Harry", "Ming", "Dino"],
+            "KGB220": ["Ben", "Kiwi", "Brade", "Alice", "Emma", "Danny", "Cooper", "Richard", "TsaiMing"],
+            "KGB250": ["Vivian", "Sylvia", "Kathryn", "Jeff"]
+        };
+
+        // 2. Comprehensive Default Dataset (Guarantees no records are lost from any screenshots)
+        const PRESET_RECORDS = [
+            // March 2026 (From example.png and Mockup)
+            { id: "p1", name: "Dino", group: "KGB210", date: "2026-03-09", reason: "全天休" },
+            { id: "p2", name: "Danny", group: "KGB220", date: "2026-03-09", reason: "國外出差" },
+            { id: "p3", name: "Sandy", group: "KGB210", date: "2026-03-02", reason: "休假" },
+            { id: "p4", name: "Edna", group: "KGB210", date: "2026-03-02", reason: "休假" },
+            { id: "p5", name: "Jeff", group: "KGB250", date: "2026-03-02", reason: "休假" },
+            { id: "p6", name: "TsaiMing", group: "KGB220", date: "2026-03-02", reason: "休假" },
+            { id: "p7", name: "Sandy", group: "KGB210", date: "2026-03-03", reason: "休假" },
+            { id: "p8", name: "Ming", group: "KGB210", date: "2026-03-03", reason: "休假" },
+            { id: "p9", name: "Cooper", group: "KGB220", date: "2026-03-03", reason: "休假" },
+            { id: "p10", name: "TsaiMing", group: "KGB220", date: "2026-03-03", reason: "休假" },
+            { id: "p11", name: "Dino", group: "KGB210", date: "2026-03-04", reason: "休假" },
+            { id: "p12", name: "Sandy", group: "KGB210", date: "2026-03-04", reason: "休假" },
+            { id: "p13", name: "Cooper", group: "KGB220", date: "2026-03-04", reason: "休假" },
+            { id: "p14", name: "Jeff", group: "KGB250", date: "2026-03-04", reason: "休假" },
+            { id: "p15", name: "Helen", group: "KGB210", date: "2026-03-04", reason: "休假" },
+            { id: "p16", name: "TsaiMing", group: "KGB220", date: "2026-03-04", reason: "休假" },
+            { id: "p17", name: "Dino", group: "KGB210", date: "2026-03-05", reason: "休假" },
+            { id: "p18", name: "Sandy", group: "KGB210", date: "2026-03-05", reason: "休假" },
+            { id: "p19", name: "Dino", group: "KGB210", date: "2026-03-06", reason: "休假" },
+            { id: "p20", name: "Sandy", group: "KGB210", date: "2026-03-06", reason: "休假" },
+            { id: "p21", name: "Brade", group: "KGB220", date: "2026-03-06", reason: "休假" },
+            { id: "p22", name: "Danny", group: "KGB220", date: "2026-03-16", reason: "出差" },
+            { id: "p23", name: "Kiwi", group: "KGB220", date: "2026-03-17", reason: "休假" },
+            { id: "p24", name: "Esther", group: "KGB210", date: "2026-03-17", reason: "休假" },
+            { id: "p25", name: "Kiwi", group: "KGB220", date: "2026-03-22", reason: "休假" },
+            { id: "p26", name: "Q1季會", group: "Event", date: "2026-03-25", reason: "會議" },
+
+            // Late 2026 & 2027
+            { id: "p30", name: "Tony", group: "KGB200", date: "2026-10-02", reason: "特休" },
+            { id: "p31", name: "Esther", group: "KGB210", date: "2026-10-15", reason: "事假" },
+            { id: "p32", name: "Sandy", group: "KGB210", date: "2026-11-04", reason: "特休" },
+            { id: "p33", name: "Ben", group: "KGB220", date: "2026-11-18", reason: "外出" },
+            { id: "p34", name: "Richard", group: "KGB220", date: "2026-12-08", reason: "特休" },
+            { id: "p35", name: "TsaiMing", group: "KGB220", date: "2026-12-08", reason: "特休" },
+            { id: "p36", name: "Q4季會", group: "Event", date: "2026-12-25", reason: "季會" },
+            { id: "p37", name: "Jeff", group: "KGB250", date: "2027-01-08", reason: "年假" },
+            { id: "p38", name: "Vivian", group: "KGB250", date: "2027-02-12", reason: "特休" },
+            { id: "p39", name: "228補假", group: "Event", date: "2027-02-27", reason: "國定假日" }
         ];
 
-        // 2. Initial Sample Leave Records
-        const DEFAULT_RECORDS = [
-            { id: "1", name: "Tony", group: "KGB200", date: "2026-10-02", note: "Annual Leave" },
-            { id: "2", name: "Esther", group: "KGB210", date: "2026-10-15", note: "Leave" },
-            { id: "3", name: "Sandy", group: "KGB210", date: "2026-11-04", note: "Leave" },
-            { id: "4", name: "Ben", group: "KGB220", date: "2026-11-18", note: "Outing" },
-            { id: "5", name: "Richard", group: "KGB220", date: "2026-12-08", note: "Leave" },
-            { id: "6", name: "TsaiMing", group: "KGB220", date: "2026-12-08", note: "Leave" },
-            { id: "7", name: "Jeff", group: "KGB250", date: "2027-01-08", note: "Leave" },
-            { id: "8", name: "Vivian", group: "KGB250", date: "2027-02-12", note: "Leave" },
-            { id: "9", name: "Q4季會", group: "Event", date: "2026-12-25", note: "Event" },
-            { id: "10", name: "228補假", group: "Event", date: "2027-02-27", note: "Public Holiday" }
-        ];
+        // 3. Smart Local Storage Merger (Recovers any records you created in previous versions)
+        const STORAGE_KEY = "kgb_master_leaves_v3";
+        let leavesData = [];
 
-        // Persistent storage via localStorage to ensure no data is lost
-        let leavesData = JSON.parse(localStorage.getItem("kgb_calendar_leaves_data"));
-        if (!leavesData || leavesData.length === 0) {
-            leavesData = DEFAULT_RECORDS;
-            saveData();
+        function loadAllRecords() {
+            let saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try { leavesData = JSON.parse(saved); } catch(e) { leavesData = []; }
+            }
+            
+            // Check legacy keys to ensure zero data loss
+            const legacyKeys = ["events", "calendarData", "leaves", "kgb_calendar_leaves", "kgb_calendar_leaves_data"];
+            legacyKeys.forEach(k => {
+                let old = localStorage.getItem(k);
+                if (old) {
+                    try {
+                        let parsed = JSON.parse(old);
+                        if (Array.isArray(parsed)) {
+                            parsed.forEach(item => {
+                                if (item && item.name && item.date && !leavesData.some(x => x.name === item.name && x.date === item.date)) {
+                                    leavesData.push(item);
+                                }
+                            });
+                        }
+                    } catch(e) {}
+                }
+            });
+
+            // Merge preset records
+            PRESET_RECORDS.forEach(preset => {
+                if (!leavesData.some(x => x.name === preset.name && x.date === preset.date)) {
+                    leavesData.push(preset);
+                }
+            });
+            saveRecords();
         }
 
-        function saveData() {
-            localStorage.setItem("kgb_calendar_leaves_data", JSON.stringify(leavesData));
+        function saveRecords() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(leavesData));
         }
 
-        // 3. States & Date Utils
+        // 4. State Variables
         let currentFilter = 'ALL';
         let searchQuery = '';
-        let activeDate = '';
+        let activeDateKey = ''; // YYYY-MM-DD
+        let activeDateFormatted = '';
 
         const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
         const today = new Date();
         const curY = today.getFullYear();
-        const curM = today.getMonth() + 1; // 1 to 12
+        const curM = today.getMonth() + 1; // 1-12
         const todayStr = `${curY}-${String(curM).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
 
-        function populateStaffOptions() {
-            const select = document.getElementById("staffSelect");
-            select.innerHTML = '<option value="">-- Select Member --</option>';
-            STAFF_MEMBERS.forEach(s => {
-                const opt = document.createElement("option");
-                opt.value = s.name;
-                opt.textContent = `${s.name} (${s.group})`;
-                select.appendChild(opt);
-            });
+        // Populate Quick Add Dropdowns
+        function setupDropdowns() {
+            for (let grp in GROUPS_DATA) {
+                const sel = document.getElementById("sel_" + grp);
+                if (!sel) continue;
+                sel.innerHTML = '<option value="">-- Select --</option>';
+                GROUPS_DATA[grp].forEach(name => {
+                    const opt = document.createElement("option");
+                    opt.value = name;
+                    opt.textContent = name;
+                    sel.appendChild(opt);
+                });
+            }
         }
 
-        function onStaffSelected() {
-            const selectedName = document.getElementById("staffSelect").value;
-            const staff = STAFF_MEMBERS.find(s => s.name === selectedName);
-            document.getElementById("groupInput").value = staff ? staff.group : '';
-        }
-
-        // Build single month calendar HTML (Used in both Main Grid & Past Month Modal)
+        // 5. Build Calendar HTML
         function renderMonthCalendar(year, month) {
             const firstDayIndex = new Date(year, month - 1, 1).getDay(); // Sunday = 0
             const daysInMonth = new Date(year, month, 0).getDate();
@@ -358,7 +434,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                 const isToday = (dateKey === todayStr);
                 const cellClass = isToday ? 'day-cell is-today' : 'day-cell';
 
-                // Query records for this day
+                // Find matching leave records
                 const matched = leavesData.filter(item => {
                     const matchDate = (item.date === dateKey);
                     const matchGroup = (currentFilter === 'ALL' || item.group === currentFilter);
@@ -375,11 +451,11 @@ HTML_CONTENT = """<!DOCTYPE html>
                     else if (item.group === 'KGB250') grpClass = 'tag-KGB250';
                     else if (item.group === 'Event') grpClass = 'tag-Event';
 
-                    tagsMarkup += `<div class="person-tag ${grpClass}" title="${item.name}: ${item.note || ''}">${item.name}</div>`;
+                    tagsMarkup += `<div class="person-tag ${grpClass}" title="${item.name}: ${item.reason || ''}">${item.name}</div>`;
                 });
 
                 html += `
-                <div class="${cellClass}" onclick="handleDateClick('${dateKey}')">
+                <div class="${cellClass}" onclick="openDateModal('${dateKey}', '${monthNames[month-1]} ${d}, ${year}')">
                     <span class="day-number">${d}</span>
                     <div class="tags-container">${tagsMarkup}</div>
                 </div>`;
@@ -389,14 +465,14 @@ HTML_CONTENT = """<!DOCTYPE html>
             return html;
         }
 
-        // Render Page Layout
+        // 6. Render Overall View
         function renderAll() {
             const pastContainer = document.getElementById('pastMonthsContainer');
             const mainGrid = document.getElementById('mainCalendarGrid');
             pastContainer.innerHTML = '';
             mainGrid.innerHTML = '';
 
-            // (1) Dynamic Past Months: automatically folds past months into the sidebar
+            // (A) Left: Dynamic Past Months Folded (Months before current month)
             let startYear = 2026, startMonth = 1;
             while (startYear < curY || (startYear === curY && startMonth < curM)) {
                 const y = startYear, m = startMonth;
@@ -410,7 +486,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                 if (startMonth > 12) { startMonth = 1; startYear++; }
             }
 
-            // (2) Right Main Grid: Displays current month through full year 2027
+            // (B) Right: 4-Column Grid from Current Month through Dec 2027
             let mainYear = curY, mainMonth = curM;
             while (mainYear < 2027 || (mainYear === 2027 && mainMonth <= 12)) {
                 mainGrid.innerHTML += renderMonthCalendar(mainYear, mainMonth);
@@ -419,94 +495,88 @@ HTML_CONTENT = """<!DOCTYPE html>
             }
         }
 
-        // Day Click Handler: Show detail if records exist, otherwise open add dialog
-        function handleDateClick(dateStr) {
-            activeDate = dateStr;
-            const records = leavesData.filter(item => item.date === dateStr);
-            if (records.length > 0) {
-                openDetailModal(dateStr, records);
-            } else {
-                openAddModal(dateStr);
-            }
+        // 7. Modal & Quick Add Logic (Exact behavior from example.png)
+        function openDateModal(dateKey, formattedDate) {
+            activeDateKey = dateKey;
+            activeDateFormatted = formattedDate;
+            document.getElementById("modalDateDisplay").textContent = formattedDate;
+            renderModalRecords();
+            document.getElementById("actionModal").style.display = "flex";
         }
 
-        // Add Modal
-        function openAddModal(dateStr) {
-            activeDate = dateStr;
-            document.getElementById("addDateInput").value = dateStr;
-            document.getElementById("staffSelect").value = '';
-            document.getElementById("groupInput").value = '';
-            document.getElementById("reasonInput").value = '';
-            document.getElementById("addModal").style.display = "flex";
-        }
-        function closeAddModal() {
-            document.getElementById("addModal").style.display = "none";
-        }
+        function renderModalRecords() {
+            const container = document.getElementById("recordsListContainer");
+            container.innerHTML = '';
 
-        function submitLeave() {
-            const name = document.getElementById("staffSelect").value;
-            const group = document.getElementById("groupInput").value;
-            const note = document.getElementById("reasonInput").value.trim();
-
-            if (!name) {
-                alert("Please select a member.");
+            const dayRecords = leavesData.filter(x => x.date === activeDateKey);
+            if (dayRecords.length === 0) {
+                container.innerHTML = '<div style="color:#94a3b8; font-size:0.9rem;">No leaves or events on this date.</div>';
                 return;
             }
 
-            leavesData.push({
-                id: String(Date.now()),
-                name: name,
-                group: group,
-                date: activeDate,
-                note: note
-            });
-
-            saveData();
-            closeAddModal();
-            renderAll();
-        }
-
-        // Detail Modal
-        function openDetailModal(dateStr, records) {
-            document.getElementById("detailModalHeading").textContent = `Records on ${dateStr}`;
-            const listContainer = document.getElementById("detailRecordsList");
-            listContainer.innerHTML = '';
-
-            records.forEach(rec => {
+            dayRecords.forEach(rec => {
                 const row = document.createElement("div");
-                row.className = "record-card";
+                row.className = "record-row";
+                
+                // Colorize name according to group
+                let color = "#334155";
+                if (rec.group === "KGB200") color = "#ff6b6b";
+                if (rec.group === "KGB210") color = "#10b981";
+                if (rec.group === "KGB220") color = "#f59e0b";
+                if (rec.group === "KGB250") color = "#3b82f6";
+                if (rec.group === "Event") color = "#8b5cf6";
+
                 row.innerHTML = `
                     <div>
-                        <strong style="font-size:0.95rem;">${rec.name}</strong>
-                        <span style="font-size:0.8rem; color:#64748b; margin-left:6px;">(${rec.group})</span>
-                        <div style="font-size:0.8rem; color:#475569; margin-top:2px;">Note: ${rec.note || 'None'}</div>
+                        <span class="rec-name" style="color:${color};">${rec.name}</span>: 
+                        <span class="rec-reason">${rec.reason || '全天休'}</span>
                     </div>
-                    <button class="btn-delete-rec" onclick="deleteRecord('${rec.id}')">Delete</button>
+                    <button class="rec-del-btn" onclick="removeRecord('${rec.id}')">✕</button>
                 `;
-                listContainer.appendChild(row);
+                container.appendChild(row);
             });
-
-            document.getElementById("detailModal").style.display = "flex";
-        }
-        function closeDetailModal() {
-            document.getElementById("detailModal").style.display = "none";
-        }
-        function openAddFromDetail() {
-            closeDetailModal();
-            openAddModal(activeDate);
         }
 
-        function deleteRecord(id) {
-            if (confirm("Are you sure you want to delete this record?")) {
-                leavesData = leavesData.filter(item => item.id !== id);
-                saveData();
-                closeDetailModal();
+        function handleQuickAdd(group, selectElement) {
+            const memberName = selectElement.value;
+            if (!memberName) return;
+
+            // Prompt user for leave reason (Default: 全天休)
+            const inputReason = prompt(`Enter reason / note for ${memberName}:`, "全天休");
+            if (inputReason !== null) { // User clicked OK
+                const newRec = {
+                    id: String(Date.now()),
+                    name: memberName,
+                    group: group,
+                    date: activeDateKey,
+                    reason: inputReason.trim() || "全天休"
+                };
+                leavesData.push(newRec);
+                saveRecords();
+                renderModalRecords();
+                renderAll();
+            }
+
+            // Reset dropdown back to default
+            selectElement.value = "";
+        }
+
+        function removeRecord(id) {
+            if (confirm("Delete this leave record?")) {
+                leavesData = leavesData.filter(x => x.id !== id);
+                saveRecords();
+                renderModalRecords();
                 renderAll();
             }
         }
 
-        // Past Month Modal
+        function closeModal() {
+            document.getElementById("actionModal").style.display = "none";
+        }
+
+        // Left Past Month Modal
         function openHistoryModal(year, month) {
+            document.getElementById("historyModalTitle").textContent = `${monthNames[month - 1]} ${year}`;
             document.getElementById("historyCalendarWrapper").innerHTML = renderMonthCalendar(year, month);
             document.getElementById("historyModal").style.display = "flex";
         }
@@ -514,31 +584,31 @@ HTML_CONTENT = """<!DOCTYPE html>
             document.getElementById("historyModal").style.display = "none";
         }
 
-        // Filters & Search
-        function setGroupFilter(group, element) {
+        // Filters and Search
+        function setGroupFilter(group, btn) {
             currentFilter = group;
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-            element.classList.add('active');
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
             renderAll();
         }
-
         function handleSearch() {
             searchQuery = document.getElementById("searchInput").value.trim().toLowerCase();
             renderAll();
         }
 
-        // Run
-        populateStaffOptions();
+        // Initialize
+        loadAllRecords();
+        setupDropdowns();
         renderAll();
     </script>
 </body>
 </html>
 """
 
-def generate_index():
+def main():
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(HTML_CONTENT)
-    print("SUCCESS: index.html has been generated with original English styling, today border, 4-column layout, and modal record fixes.")
+    print("SUCCESS: index.html has been generated with exact Quick Add modal, restored history data, and 4-column layout.")
 
 if __name__ == "__main__":
-    generate_index()
+    main()
