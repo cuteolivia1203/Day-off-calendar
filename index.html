@@ -1,7 +1,4 @@
-# update_calendar.py
-# 執行此腳本即可生成包含 Quick Add 彈窗、歷史紀錄保護與 4 欄排版的 index.html
-
-HTML_CONTENT = """<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -13,6 +10,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             --border-color: #e2e8f0;
             --text-color: #334155;
             
+            /* Group Solid Background Colors */
             --c-200: #ff6b6b;
             --c-210: #20c997;
             --c-220: #f59e0b;
@@ -59,7 +57,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         /* Main Layout */
         .content-layout { display: flex; gap: 20px; align-items: flex-start; }
 
-        /* Left Sidebar: Past Months */
+        /* Left Sidebar: Archived Past Months */
         .sidebar-past {
             width: 95px; flex-shrink: 0; display: flex; flex-direction: column; gap: 8px;
             max-height: calc(100vh - 120px); overflow-y: auto; padding-right: 2px;
@@ -71,7 +69,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         }
         .past-month-btn:hover { background: #f1f5f9; color: #1e293b; border-color: #cbd5e1; }
 
-        /* Right Calendar: 4 Columns Grid */
+        /* Right Calendar: 4-Column Grid, Vertical Scroll */
         .calendar-grid-wrapper {
             flex-grow: 1;
             display: grid;
@@ -120,28 +118,29 @@ HTML_CONTENT = """<!DOCTYPE html>
 
         /* Today Border */
         .day-cell.is-today {
-            border: 2px solid var(--today-orange) !important;
+            border: 2.5px solid var(--today-orange) !important;
             background: #fffaf0 !important;
-            box-shadow: 0 0 8px rgba(255, 140, 0, 0.45) !important;
+            box-shadow: 0 0 10px rgba(255, 140, 0, 0.45) !important;
         }
 
-        /* Leave Pill Badges */
+        /* Solid Color Badges for Group Names */
         .tags-container {
             width: 100%; display: flex; flex-direction: column; gap: 2px; overflow-y: auto;
         }
         .person-tag {
-            width: 100%; font-size: 0.6rem; padding: 1.5px 2px; border-radius: 3px;
+            width: 100%; font-size: 0.6rem; padding: 2px 2px; border-radius: 4px;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-            text-align: center; font-weight: 700; color: #ffffff;
-            cursor: pointer; background: #94a3b8;
+            text-align: center; font-weight: 700; color: #ffffff !important;
+            cursor: pointer;
         }
-        .tag-KGB200 { background: var(--c-200); }
-        .tag-KGB210 { background: #10b981; }
-        .tag-KGB220 { background: #f59e0b; }
-        .tag-KGB250 { background: var(--c-250); }
-        .tag-Event { background: var(--c-event); }
+        .tag-KGB200 { background-color: var(--c-200) !important; }
+        .tag-KGB210 { background-color: var(--c-210) !important; }
+        .tag-KGB220 { background-color: var(--c-220) !important; }
+        .tag-KGB250 { background-color: var(--c-250) !important; }
+        .tag-Event  { background-color: var(--c-event) !important; }
+        .tag-default { background-color: #94a3b8 !important; }
 
-        /* Modal Styles (Matches example.png) */
+        /* Modal Styles */
         .modal-mask {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(15, 23, 42, 0.45); z-index: 999; justify-content: center; align-items: center;
@@ -159,9 +158,8 @@ HTML_CONTENT = """<!DOCTYPE html>
         .modal-close-icon {
             font-size: 1.4rem; color: #94a3b8; cursor: pointer; border: none; background: transparent; font-weight: bold;
         }
-        .modal-close-icon:hover { color: #475569; }
 
-        /* Existing Records Card */
+        /* Existing Records List in Modal */
         .records-card {
             background: #ffffff; border: 1.5px solid #edf2f7; border-radius: 14px;
             padding: 16px; min-height: 70px; margin-bottom: 18px;
@@ -189,17 +187,16 @@ HTML_CONTENT = """<!DOCTYPE html>
         }
         .group-select-block select {
             width: 100%; height: 42px; border-radius: 10px; padding: 0 10px; font-size: 0.88rem;
-            outline: none; cursor: pointer; background: #ffffff; transition: border-color 0.2s;
+            outline: none; cursor: pointer; background: #ffffff;
         }
-        /* Specific borders & label colors */
-        .lbl-200 { color: #ff6b6b; }
-        .sel-200 { border: 1.8px solid #ff7979; background: #fffdfd; }
-        .lbl-210 { color: #20c997; }
-        .sel-210 { border: 1.8px solid #48dbfb; background: #fafdff; }
-        .lbl-220 { color: #f59e0b; }
-        .sel-220 { border: 1.8px solid #feca57; background: #fffdf5; }
-        .lbl-250 { color: #3b82f6; }
-        .sel-250 { border: 1.8px solid #54a0ff; background: #f6faff; }
+        .lbl-200 { color: var(--c-200); }
+        .sel-200 { border: 1.8px solid #ff7979; }
+        .lbl-210 { color: var(--c-210); }
+        .sel-210 { border: 1.8px solid #48dbfb; }
+        .lbl-220 { color: var(--c-220); }
+        .sel-220 { border: 1.8px solid #feca57; }
+        .lbl-250 { color: var(--c-250); }
+        .sel-250 { border: 1.8px solid #54a0ff; }
     </style>
 </head>
 <body>
@@ -217,7 +214,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         </div>
         <div style="display: flex; gap: 8px;">
             <input type="text" id="searchInput" class="search-input" placeholder="Search Name..." oninput="handleSearch()">
-            <button class="refresh-btn" onclick="window.location.reload()">Refresh</button>
+            <button class="refresh-btn" onclick="fetchSheetData()">Refresh</button>
         </div>
     </div>
 
@@ -230,7 +227,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         <div class="calendar-grid-wrapper" id="mainCalendarGrid"></div>
     </div>
 
-    <!-- Modal: View & Quick Add (Exact mockup from example.png) -->
+    <!-- Modal: View & Quick Add -->
     <div class="modal-mask" id="actionModal" onclick="if(event.target===this) closeModal()">
         <div class="modal-card-box">
             <div class="modal-header-row">
@@ -238,34 +235,30 @@ HTML_CONTENT = """<!DOCTYPE html>
                 <button class="modal-close-icon" onclick="closeModal()">×</button>
             </div>
 
-            <!-- List of existing leaves -->
+            <!-- Existing records list -->
             <div class="records-card" id="recordsListContainer"></div>
 
             <!-- Quick Add Dropdowns -->
             <div class="quick-add-title">Quick Add:</div>
             <div class="quick-add-grid">
-                <!-- KGB200 -->
                 <div class="group-select-block">
                     <label class="lbl-200">KGB200 Tony</label>
                     <select id="sel_KGB200" class="sel-200" onchange="handleQuickAdd('KGB200', this)">
                         <option value="">-- Select --</option>
                     </select>
                 </div>
-                <!-- KGB210 -->
                 <div class="group-select-block">
                     <label class="lbl-210">KGB210 Visual Design</label>
                     <select id="sel_KGB210" class="sel-210" onchange="handleQuickAdd('KGB210', this)">
                         <option value="">-- Select --</option>
                     </select>
                 </div>
-                <!-- KGB220 -->
                 <div class="group-select-block">
                     <label class="lbl-220">KGB220 Video</label>
                     <select id="sel_KGB220" class="sel-220" onchange="handleQuickAdd('KGB220', this)">
                         <option value="">-- Select --</option>
                     </select>
                 </div>
-                <!-- KGB250 -->
                 <div class="group-select-block">
                     <label class="lbl-250">KGB250 Creative Ops.</label>
                     <select id="sel_KGB250" class="sel-250" onchange="handleQuickAdd('KGB250', this)">
@@ -276,7 +269,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         </div>
     </div>
 
-    <!-- Modal: Left Past Month Calendar -->
+    <!-- Modal: Past Month Calendar -->
     <div class="modal-mask" id="historyModal" onclick="if(event.target===this) closeHistoryModal()">
         <div class="modal-card-box" style="max-width: 400px;">
             <div class="modal-header-row">
@@ -288,7 +281,7 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
 
     <script>
-        // 1. Members Definition
+        // 1. Group Members (Richard & TsaiMing are in KGB220)
         const GROUPS_DATA = {
             "KGB200": ["Tony"],
             "KGB210": ["Esther", "Jasmin", "Sophie", "Edna", "Sandy", "Mars", "Helen", "Ann", "Harry", "Ming", "Dino"],
@@ -296,103 +289,70 @@ HTML_CONTENT = """<!DOCTYPE html>
             "KGB250": ["Vivian", "Sylvia", "Kathryn", "Jeff"]
         };
 
-        // 2. Comprehensive Default Dataset (Guarantees no records are lost from any screenshots)
-        const PRESET_RECORDS = [
-            // March 2026 (From example.png and Mockup)
-            { id: "p1", name: "Dino", group: "KGB210", date: "2026-03-09", reason: "全天休" },
-            { id: "p2", name: "Danny", group: "KGB220", date: "2026-03-09", reason: "國外出差" },
-            { id: "p3", name: "Sandy", group: "KGB210", date: "2026-03-02", reason: "休假" },
-            { id: "p4", name: "Edna", group: "KGB210", date: "2026-03-02", reason: "休假" },
-            { id: "p5", name: "Jeff", group: "KGB250", date: "2026-03-02", reason: "休假" },
-            { id: "p6", name: "TsaiMing", group: "KGB220", date: "2026-03-02", reason: "休假" },
-            { id: "p7", name: "Sandy", group: "KGB210", date: "2026-03-03", reason: "休假" },
-            { id: "p8", name: "Ming", group: "KGB210", date: "2026-03-03", reason: "休假" },
-            { id: "p9", name: "Cooper", group: "KGB220", date: "2026-03-03", reason: "休假" },
-            { id: "p10", name: "TsaiMing", group: "KGB220", date: "2026-03-03", reason: "休假" },
-            { id: "p11", name: "Dino", group: "KGB210", date: "2026-03-04", reason: "休假" },
-            { id: "p12", name: "Sandy", group: "KGB210", date: "2026-03-04", reason: "休假" },
-            { id: "p13", name: "Cooper", group: "KGB220", date: "2026-03-04", reason: "休假" },
-            { id: "p14", name: "Jeff", group: "KGB250", date: "2026-03-04", reason: "休假" },
-            { id: "p15", name: "Helen", group: "KGB210", date: "2026-03-04", reason: "休假" },
-            { id: "p16", name: "TsaiMing", group: "KGB220", date: "2026-03-04", reason: "休假" },
-            { id: "p17", name: "Dino", group: "KGB210", date: "2026-03-05", reason: "休假" },
-            { id: "p18", name: "Sandy", group: "KGB210", date: "2026-03-05", reason: "休假" },
-            { id: "p19", name: "Dino", group: "KGB210", date: "2026-03-06", reason: "休假" },
-            { id: "p20", name: "Sandy", group: "KGB210", date: "2026-03-06", reason: "休假" },
-            { id: "p21", name: "Brade", group: "KGB220", date: "2026-03-06", reason: "休假" },
-            { id: "p22", name: "Danny", group: "KGB220", date: "2026-03-16", reason: "出差" },
-            { id: "p23", name: "Kiwi", group: "KGB220", date: "2026-03-17", reason: "休假" },
-            { id: "p24", name: "Esther", group: "KGB210", date: "2026-03-17", reason: "休假" },
-            { id: "p25", name: "Kiwi", group: "KGB220", date: "2026-03-22", reason: "休假" },
-            { id: "p26", name: "Q1季會", group: "Event", date: "2026-03-25", reason: "會議" },
-
-            // Late 2026 & 2027
-            { id: "p30", name: "Tony", group: "KGB200", date: "2026-10-02", reason: "特休" },
-            { id: "p31", name: "Esther", group: "KGB210", date: "2026-10-15", reason: "事假" },
-            { id: "p32", name: "Sandy", group: "KGB210", date: "2026-11-04", reason: "特休" },
-            { id: "p33", name: "Ben", group: "KGB220", date: "2026-11-18", reason: "外出" },
-            { id: "p34", name: "Richard", group: "KGB220", date: "2026-12-08", reason: "特休" },
-            { id: "p35", name: "TsaiMing", group: "KGB220", date: "2026-12-08", reason: "特休" },
-            { id: "p36", name: "Q4季會", group: "Event", date: "2026-12-25", reason: "季會" },
-            { id: "p37", name: "Jeff", group: "KGB250", date: "2027-01-08", reason: "年假" },
-            { id: "p38", name: "Vivian", group: "KGB250", date: "2027-02-12", reason: "特休" },
-            { id: "p39", name: "228補假", group: "Event", date: "2027-02-27", reason: "國定假日" }
-        ];
-
-        // 3. Smart Local Storage Merger (Recovers any records you created in previous versions)
-        const STORAGE_KEY = "kgb_master_leaves_v3";
+        // 2. Fetch Live Google Sheet Data (Leaves tab)
+        const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1tQsk8QA9hd-xlgEzXe5uImGJy6WIEb0p9igklTlmKZw/gviz/tq?tqx=out:csv&sheet=Leaves";
         let leavesData = [];
 
-        function loadAllRecords() {
-            let saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) {
-                try { leavesData = JSON.parse(saved); } catch(e) { leavesData = []; }
+        function parseDateStandard(dateStr) {
+            if (!dateStr) return "";
+            const parts = dateStr.replace(/\\//g, '-').split('-');
+            if (parts.length === 3) {
+                const y = parts[0].trim();
+                const m = parts[1].trim().padStart(2, '0');
+                const d = parts[2].trim().padStart(2, '0');
+                return `${y}-${m}-${d}`;
             }
-            
-            // Check legacy keys to ensure zero data loss
-            const legacyKeys = ["events", "calendarData", "leaves", "kgb_calendar_leaves", "kgb_calendar_leaves_data"];
-            legacyKeys.forEach(k => {
-                let old = localStorage.getItem(k);
-                if (old) {
-                    try {
-                        let parsed = JSON.parse(old);
-                        if (Array.isArray(parsed)) {
-                            parsed.forEach(item => {
-                                if (item && item.name && item.date && !leavesData.some(x => x.name === item.name && x.date === item.date)) {
-                                    leavesData.push(item);
-                                }
-                            });
+            return dateStr.trim();
+        }
+
+        async function fetchSheetData() {
+            try {
+                const res = await fetch(SHEET_CSV_URL);
+                const text = await res.text();
+                const rows = text.split(/\\r?\\n/).filter(r => r.trim() !== '');
+                
+                const loaded = [];
+                for (let i = 1; i < rows.length; i++) {
+                    const cols = rows[i].split(',').map(c => c.replace(/^["']|["']$/g, '').trim());
+                    if (cols.length >= 3) {
+                        const name = cols[0];
+                        let group = cols[1];
+                        const date = parseDateStandard(cols[2]);
+                        const note = cols[3] || '全天休';
+                        
+                        if (name === "Richard" || name === "TsaiMing") {
+                            group = "KGB220";
                         }
-                    } catch(e) {}
+                        
+                        if (name && date) {
+                            loaded.push({ id: "sheet_" + i, name, group, date, reason: note });
+                        }
+                    }
                 }
-            });
-
-            // Merge preset records
-            PRESET_RECORDS.forEach(preset => {
-                if (!leavesData.some(x => x.name === preset.name && x.date === preset.date)) {
-                    leavesData.push(preset);
-                }
-            });
-            saveRecords();
+                leavesData = loaded;
+                
+                const localSaved = JSON.parse(localStorage.getItem("kgb_local_extra") || "[]");
+                localSaved.forEach(rec => leavesData.push(rec));
+                
+                renderAll();
+            } catch (err) {
+                console.error("Failed to load Google Sheet, falling back to cache", err);
+                renderAll();
+            }
         }
 
-        function saveRecords() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(leavesData));
-        }
-
-        // 4. State Variables
+        // 3. States & Date
         let currentFilter = 'ALL';
         let searchQuery = '';
-        let activeDateKey = ''; // YYYY-MM-DD
+        let activeDateKey = '';
         let activeDateFormatted = '';
 
         const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
         const today = new Date();
         const curY = today.getFullYear();
-        const curM = today.getMonth() + 1; // 1-12
+        const curM = today.getMonth() + 1;
         const todayStr = `${curY}-${String(curM).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
 
-        // Populate Quick Add Dropdowns
         function setupDropdowns() {
             for (let grp in GROUPS_DATA) {
                 const sel = document.getElementById("sel_" + grp);
@@ -407,9 +367,9 @@ HTML_CONTENT = """<!DOCTYPE html>
             }
         }
 
-        // 5. Build Calendar HTML
+        // Build single month HTML
         function renderMonthCalendar(year, month) {
-            const firstDayIndex = new Date(year, month - 1, 1).getDay(); // Sunday = 0
+            const firstDayIndex = new Date(year, month - 1, 1).getDay();
             const daysInMonth = new Date(year, month, 0).getDate();
             const title = `${monthNames[month - 1]} ${year}`;
 
@@ -434,7 +394,6 @@ HTML_CONTENT = """<!DOCTYPE html>
                 const isToday = (dateKey === todayStr);
                 const cellClass = isToday ? 'day-cell is-today' : 'day-cell';
 
-                // Find matching leave records
                 const matched = leavesData.filter(item => {
                     const matchDate = (item.date === dateKey);
                     const matchGroup = (currentFilter === 'ALL' || item.group === currentFilter);
@@ -465,14 +424,14 @@ HTML_CONTENT = """<!DOCTYPE html>
             return html;
         }
 
-        // 6. Render Overall View
+        // Render whole page
         function renderAll() {
             const pastContainer = document.getElementById('pastMonthsContainer');
             const mainGrid = document.getElementById('mainCalendarGrid');
             pastContainer.innerHTML = '';
             mainGrid.innerHTML = '';
 
-            // (A) Left: Dynamic Past Months Folded (Months before current month)
+            // (1) Left: Past Months Folded (Months before current month)
             let startYear = 2026, startMonth = 1;
             while (startYear < curY || (startYear === curY && startMonth < curM)) {
                 const y = startYear, m = startMonth;
@@ -486,7 +445,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                 if (startMonth > 12) { startMonth = 1; startYear++; }
             }
 
-            // (B) Right: 4-Column Grid from Current Month through Dec 2027
+            // (2) Right: Main 4-Column Grid (From Current Month to Dec 2027)
             let mainYear = curY, mainMonth = curM;
             while (mainYear < 2027 || (mainYear === 2027 && mainMonth <= 12)) {
                 mainGrid.innerHTML += renderMonthCalendar(mainYear, mainMonth);
@@ -495,7 +454,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             }
         }
 
-        // 7. Modal & Quick Add Logic (Exact behavior from example.png)
+        // Modal View & Quick Add
         function openDateModal(dateKey, formattedDate) {
             activeDateKey = dateKey;
             activeDateFormatted = formattedDate;
@@ -518,13 +477,12 @@ HTML_CONTENT = """<!DOCTYPE html>
                 const row = document.createElement("div");
                 row.className = "record-row";
                 
-                // Colorize name according to group
                 let color = "#334155";
-                if (rec.group === "KGB200") color = "#ff6b6b";
-                if (rec.group === "KGB210") color = "#10b981";
-                if (rec.group === "KGB220") color = "#f59e0b";
-                if (rec.group === "KGB250") color = "#3b82f6";
-                if (rec.group === "Event") color = "#8b5cf6";
+                if (rec.group === "KGB200") color = "var(--c-200)";
+                if (rec.group === "KGB210") color = "var(--c-210)";
+                if (rec.group === "KGB220") color = "var(--c-220)";
+                if (rec.group === "KGB250") color = "var(--c-250)";
+                if (rec.group === "Event") color = "var(--c-event)";
 
                 row.innerHTML = `
                     <div>
@@ -541,30 +499,34 @@ HTML_CONTENT = """<!DOCTYPE html>
             const memberName = selectElement.value;
             if (!memberName) return;
 
-            // Prompt user for leave reason (Default: 全天休)
             const inputReason = prompt(`Enter reason / note for ${memberName}:`, "全天休");
-            if (inputReason !== null) { // User clicked OK
+            if (inputReason !== null) {
                 const newRec = {
-                    id: String(Date.now()),
+                    id: "local_" + Date.now(),
                     name: memberName,
                     group: group,
                     date: activeDateKey,
                     reason: inputReason.trim() || "全天休"
                 };
                 leavesData.push(newRec);
-                saveRecords();
+                
+                const localSaved = JSON.parse(localStorage.getItem("kgb_local_extra") || "[]");
+                localSaved.push(newRec);
+                localStorage.setItem("kgb_local_extra", JSON.stringify(localSaved));
+
                 renderModalRecords();
                 renderAll();
             }
-
-            // Reset dropdown back to default
             selectElement.value = "";
         }
 
         function removeRecord(id) {
-            if (confirm("Delete this leave record?")) {
+            if (confirm("Delete this record?")) {
                 leavesData = leavesData.filter(x => x.id !== id);
-                saveRecords();
+                let localSaved = JSON.parse(localStorage.getItem("kgb_local_extra") || "[]");
+                localSaved = localSaved.filter(x => x.id !== id);
+                localStorage.setItem("kgb_local_extra", JSON.stringify(localSaved));
+
                 renderModalRecords();
                 renderAll();
             }
@@ -584,7 +546,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             document.getElementById("historyModal").style.display = "none";
         }
 
-        // Filters and Search
+        // Filter & Search
         function setGroupFilter(group, btn) {
             currentFilter = group;
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -596,19 +558,9 @@ HTML_CONTENT = """<!DOCTYPE html>
             renderAll();
         }
 
-        // Initialize
-        loadAllRecords();
+        // Run
         setupDropdowns();
-        renderAll();
+        fetchSheetData();
     </script>
 </body>
 </html>
-"""
-
-def main():
-    with open("index.html", "w", encoding="utf-8") as f:
-        f.write(HTML_CONTENT)
-    print("SUCCESS: index.html has been generated with exact Quick Add modal, restored history data, and 4-column layout.")
-
-if __name__ == "__main__":
-    main()
