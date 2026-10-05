@@ -1,5 +1,5 @@
 # update_calendar.py
-# 執行後會在當前目錄生成 index.html，可直接複製 index.html 內容覆蓋 GitHub 檔案
+# 執行此腳本即可生成包含 Apps Script 串接、Quick Add 專屬底色與 3 色標籤的 index.html
 
 HTML_CONTENT = """<!DOCTYPE html>
 <html lang="en">
@@ -13,7 +13,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             --border-color: #e2e8f0;
             --text-color: #334155;
             
-            /* Quick Add Group Select Colors (Like example_3.png) */
+            /* Quick Add Group Select Colors (Matches example_3.png) */
             --qa-200-border: #ff7979;
             --qa-200-bg: #fff5f5;
             --qa-200-lbl: #ff6b6b;
@@ -30,10 +30,10 @@ HTML_CONTENT = """<!DOCTYPE html>
             --qa-250-bg: #e7f5ff;
             --qa-250-lbl: #3b82f6;
 
-            /* Calendar Pill Tag Colors (Only 3 Types) */
-            --tag-leave-bg: #9e9e9e; /* 灰色表示休假 */
-            --tag-outing-bg: #10b981; /* 綠色表示外出/出差 */
-            --tag-event-bg: #8b5cf6;  /* 紫色表示Events */
+            /* Calendar Pill Tag Colors: Only 3 Types */
+            --tag-leave-bg: #9e9e9e;  /* 灰色: 休假 */
+            --tag-outing-bg: #10b981; /* 綠色: 外出/出差 */
+            --tag-event-bg: #8b5cf6;  /* 紫色: Events */
 
             --today-orange: #FF8C00;
         }
@@ -211,7 +211,6 @@ HTML_CONTENT = """<!DOCTYPE html>
             outline: none; cursor: pointer; transition: all 0.2s;
         }
         
-        /* 4 Specific Colored Select Backgrounds */
         .lbl-200 { color: var(--qa-200-lbl); }
         .sel-200 { border: 1.8px solid var(--qa-200-border); background-color: var(--qa-200-bg); }
         
@@ -309,7 +308,7 @@ HTML_CONTENT = """<!DOCTYPE html>
                 </div>
             </div>
 
-            <!-- Slot / Reason Direct Selector (Appears right after choosing a name) -->
+            <!-- Slot / Reason Direct Selector -->
             <div class="slot-selector-box" id="slotSelectorBox">
                 <div class="slot-title">Select status for <strong id="selectedMemberNameText"></strong>:</div>
                 <div class="slot-buttons-grid">
@@ -336,31 +335,31 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
 
     <script>
-        // 1. Members Definition (Richard & TsaiMing are in KGB220)
-        const GROUPS_DATA = {
+        // Apps Script Web App URL
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyQ2pyXJZfAZVMA1SB8XJc2m3i4tdqTYJCwUa1KoGodr1tSwy_dfljN_CkGIGElA6Uo7Q/exec";
+
+        // Group Staff Definition (Richard & TsaiMing are in KGB220)
+        let GROUPS_DATA = {
             "KGB200": ["Tony"],
             "KGB210": ["Esther", "Jasmin", "Sophie", "Edna", "Sandy", "Mars", "Helen", "Ann", "Harry", "Ming", "Dino"],
             "KGB220": ["Ben", "Kiwi", "Brade", "Alice", "Emma", "Danny", "Cooper", "Richard", "TsaiMing"],
             "KGB250": ["Vivian", "Sylvia", "Kathryn", "Jeff"]
         };
 
-        // 2. Fetch Live Google Sheet Data (Leaves tab)
-        const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1tQsk8QA9hd-xlgEzXe5uImGJy6WIEb0p9igklTlmKZw/gviz/tq?tqx=out:csv&sheet=Leaves";
         let leavesData = [];
 
         function parseDateStandard(dateStr) {
             if (!dateStr) return "";
-            const parts = dateStr.replace(/\\//g, '-').split('-');
+            const parts = String(dateStr).replace(/\\//g, '-').split('-');
             if (parts.length === 3) {
                 const y = parts[0].trim();
                 const m = parts[1].trim().padStart(2, '0');
                 const d = parts[2].trim().padStart(2, '0');
                 return `${y}-${m}-${d}`;
             }
-            return dateStr.trim();
+            return String(dateStr).trim();
         }
 
-        // Determine Tag Category: Leave (Grey), Outing (Green), or Event (Purple)
         function getStatusCategory(group, reason) {
             if (group === "Event" || (reason && (reason.includes("季會") || reason.includes("假") || reason.includes("節") || reason.includes("公休")) && !reason.includes("全天休") && !reason.includes("半天"))) {
                 return "tag-event";
@@ -368,47 +367,80 @@ HTML_CONTENT = """<!DOCTYPE html>
             if (reason && (reason.includes("出差") || reason.includes("外出") || reason.includes("公出") || reason.includes("Outing") || reason.includes("Trip"))) {
                 return "tag-outing";
             }
-            return "tag-leave"; // Default Grey
+            return "tag-leave";
         }
 
+        // Fetch Live Data from Apps Script Web App
         async function fetchSheetData() {
+            let loaded = [];
             try {
-                const res = await fetch(SHEET_CSV_URL);
-                const text = await res.text();
-                const rows = text.split(/\\r?\\n/).filter(r => r.trim() !== '');
+                const res = await fetch(APPS_SCRIPT_URL);
+                const json = await res.json();
                 
-                const loaded = [];
-                for (let i = 1; i < rows.length; i++) {
-                    const cols = rows[i].split(',').map(c => c.replace(/^["']|["']$/g, '').trim());
-                    if (cols.length >= 3) {
-                        const name = cols[0];
-                        let group = cols[1];
-                        const date = parseDateStandard(cols[2]);
-                        const note = cols[3] || '全天休';
-                        
-                        if (name === "Richard" || name === "TsaiMing") {
-                            group = "KGB220";
-                        }
-                        
-                        if (name && date) {
-                            loaded.push({ id: "sheet_" + i, name, group, date, reason: note });
-                        }
-                    }
+                // Parse Staff if available
+                if (json.staff && json.staff.length > 0) {
+                    const newGrp = { "KGB200": [], "KGB210": [], "KGB220": [], "KGB250": [] };
+                    json.staff.forEach(st => {
+                        const sName = st.Name || st.name;
+                        let sGrp = st.Group || st.group;
+                        if (sName === "Richard" || sName === "TsaiMing") sGrp = "KGB220";
+                        if (newGrp[sGrp]) newGrp[sGrp].push(sName);
+                    });
+                    GROUPS_DATA = newGrp;
+                    setupDropdowns();
                 }
-                leavesData = loaded;
-                
-                // Merge locally added items
-                const localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v4") || "[]");
-                localSaved.forEach(rec => leavesData.push(rec));
-                
-                renderAll();
-            } catch (err) {
-                console.error("Failed to fetch Google Sheet data", err);
-                renderAll();
+
+                // Parse Leaves Data
+                if (json.leaves && json.leaves.length > 0) {
+                    json.leaves.forEach((lv, idx) => {
+                        const lName = lv.Name || lv.name;
+                        let lGrp = lv.Group || lv.group;
+                        const lDate = parseDateStandard(lv.Date || lv.date);
+                        const lNote = lv.Note || lv.note || lv.Reason || lv.reason || '全天休';
+                        if (lName === "Richard" || lName === "TsaiMing") lGrp = "KGB220";
+
+                        if (lName && lDate) {
+                            loaded.push({
+                                id: "api_" + idx,
+                                name: lName,
+                                group: lGrp,
+                                date: lDate,
+                                reason: lNote
+                            });
+                        }
+                    });
+                }
+
+                // Parse Events Data if available
+                if (json.events && json.events.length > 0) {
+                    json.events.forEach((ev, idx) => {
+                        const eName = ev.Name || ev.name || ev.Title || ev.title;
+                        const eDate = parseDateStandard(ev.Date || ev.date);
+                        if (eName && eDate) {
+                            loaded.push({
+                                id: "event_" + idx,
+                                name: eName,
+                                group: "Event",
+                                date: eDate,
+                                reason: eName
+                            });
+                        }
+                    });
+                }
+            } catch(e) {
+                console.warn("Apps Script API fetch error:", e);
             }
+
+            leavesData = loaded;
+
+            // Merge local overrides
+            const localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v6") || "[]");
+            localSaved.forEach(rec => leavesData.push(rec));
+
+            renderAll();
         }
 
-        // 3. States & Date
+        // States & Date
         let currentFilter = 'ALL';
         let searchQuery = '';
         let activeDateKey = '';
@@ -436,7 +468,6 @@ HTML_CONTENT = """<!DOCTYPE html>
             }
         }
 
-        // Build single month HTML
         function renderMonthCalendar(year, month) {
             const firstDayIndex = new Date(year, month - 1, 1).getDay();
             const daysInMonth = new Date(year, month, 0).getDate();
@@ -487,7 +518,6 @@ HTML_CONTENT = """<!DOCTYPE html>
             return html;
         }
 
-        // Render whole page
         function renderAll() {
             const pastContainer = document.getElementById('pastMonthsContainer');
             const mainGrid = document.getElementById('mainCalendarGrid');
@@ -517,7 +547,6 @@ HTML_CONTENT = """<!DOCTYPE html>
             }
         }
 
-        // Modal View & Quick Add
         function openDateModal(dateKey, formattedDate) {
             activeDateKey = dateKey;
             activeDateFormatted = formattedDate;
@@ -557,7 +586,6 @@ HTML_CONTENT = """<!DOCTYPE html>
             });
         }
 
-        // Triggered immediately when a name is chosen from colored dropdown
         function onMemberSelected(group, selectElement) {
             const memberName = selectElement.value;
             if (!memberName) {
@@ -583,12 +611,10 @@ HTML_CONTENT = """<!DOCTYPE html>
             };
             leavesData.push(newRec);
 
-            // Save locally
-            const localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v4") || "[]");
+            const localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v6") || "[]");
             localSaved.push(newRec);
-            localStorage.setItem("kgb_local_records_v4", JSON.stringify(localSaved));
+            localStorage.setItem("kgb_local_records_v6", JSON.stringify(localSaved));
 
-            // Reset
             document.getElementById("slotSelectorBox").style.display = "none";
             document.getElementById("sel_" + pendingGroup).value = "";
             pendingMember = null;
@@ -608,9 +634,9 @@ HTML_CONTENT = """<!DOCTYPE html>
         function removeRecord(id) {
             if (confirm("Delete this record?")) {
                 leavesData = leavesData.filter(x => x.id !== id);
-                let localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v4") || "[]");
+                let localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v6") || "[]");
                 localSaved = localSaved.filter(x => x.id !== id);
-                localStorage.setItem("kgb_local_records_v4", JSON.stringify(localSaved));
+                localStorage.setItem("kgb_local_records_v6", JSON.stringify(localSaved));
 
                 renderModalRecords();
                 renderAll();
@@ -622,7 +648,6 @@ HTML_CONTENT = """<!DOCTYPE html>
             document.getElementById("slotSelectorBox").style.display = "none";
         }
 
-        // Past Month Modal
         function openHistoryModal(year, month) {
             document.getElementById("historyModalTitle").textContent = `${monthNames[month - 1]} ${year}`;
             document.getElementById("historyCalendarWrapper").innerHTML = renderMonthCalendar(year, month);
@@ -632,7 +657,6 @@ HTML_CONTENT = """<!DOCTYPE html>
             document.getElementById("historyModal").style.display = "none";
         }
 
-        // Filter & Search
         function setGroupFilter(group, btn) {
             currentFilter = group;
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -644,7 +668,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             renderAll();
         }
 
-        // Initialize
+        // Start
         setupDropdowns();
         fetchSheetData();
     </script>
@@ -655,7 +679,7 @@ HTML_CONTENT = """<!DOCTYPE html>
 def generate():
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(HTML_CONTENT)
-    print("SUCCESS: index.html generated with 3 pill colors (grey/green/purple), colored Quick Add dropdowns, and inline slot selector.")
+    print("SUCCESS: Generated index.html with live Apps Script API integration.")
 
 if __name__ == "__main__":
     generate()
