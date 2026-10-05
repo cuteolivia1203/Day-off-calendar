@@ -214,14 +214,14 @@
         .btn-section-label { font-size: 0.75rem; font-weight: 700; color: #64748b; margin: 6px 0 4px 0; text-transform: uppercase; }
         .slot-buttons-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
 
-        /* 灰背景白字：休假 (3 options) */
+        /* 灰背景白字：休假 (3種) */
         .btn-status-leave {
             background-color: var(--leave-gray-bg); color: #ffffff; border: none; border-radius: 8px;
             padding: 7px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
         }
         .btn-status-leave:hover { opacity: 0.9; }
 
-        /* 綠背景白字：外出與出差 (4 options) */
+        /* 綠背景白字：外出與出差 (4種) */
         .btn-status-outing {
             background-color: var(--outing-green-bg); color: #ffffff; border: none; border-radius: 8px;
             padding: 7px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
@@ -248,7 +248,7 @@
         </div>
     </div>
 
-    <!-- Main Grid (Starts immediately from Current Month to Dec 2027) -->
+    <!-- Main Grid (Starts from Current Month through Dec 2027) -->
     <div class="calendar-grid-wrapper" id="mainCalendarGrid"></div>
 
     <!-- Modal: View & Quick Add -->
@@ -319,7 +319,7 @@
         // Apps Script Web App Deployment URL
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyQ2pyXJZfAZVMA1SB8XJc2m3i4tdqTYJCwUa1KoGodr1tSwy_dfljN_CkGIGElA6Uo7Q/exec";
 
-        // Group Staff Definition (Richard & TsaiMing in KGB220)
+        // Group Staff Definition (Richard & TsaiMing are in KGB220)
         let GROUPS_DATA = {
             "KGB200": ["Tony"],
             "KGB210": ["Esther", "Jasmin", "Sophie", "Edna", "Sandy", "Mars", "Helen", "Ann", "Harry", "Ming", "Dino"],
@@ -331,7 +331,7 @@
 
         function parseDateStandard(dateStr) {
             if (!dateStr) return "";
-            const parts = String(dateStr).replace(/\\//g, '-').split('-');
+            const parts = String(dateStr).replace(/\//g, '-').split('-');
             if (parts.length === 3) {
                 const y = parts[0].trim();
                 const m = parts[1].trim().padStart(2, '0');
@@ -350,97 +350,6 @@
                 return "tag-outing"; // 綠底白字
             }
             return "tag-leave"; // 灰底白字
-        }
-
-        // Process data payload
-        function processApiResponse(json) {
-            let loaded = [];
-            if (!json) return;
-
-            // 1. Staff Members
-            if (json.staff && json.staff.length > 0) {
-                const newGrp = { "KGB200": [], "KGB210": [], "KGB220": [], "KGB250": [] };
-                json.staff.forEach(st => {
-                    const sName = st.Name || st.name;
-                    let sGrp = st.Group || st.group;
-                    if (sName === "Richard" || sName === "TsaiMing") sGrp = "KGB220";
-                    if (newGrp[sGrp]) newGrp[sGrp].push(sName);
-                });
-                GROUPS_DATA = newGrp;
-                setupDropdowns();
-            }
-
-            // 2. Leaves Data
-            if (json.leaves && json.leaves.length > 0) {
-                json.leaves.forEach((lv, idx) => {
-                    const lName = lv.Name || lv.name;
-                    let lGrp = lv.Group || lv.group;
-                    const lDate = parseDateStandard(lv.Date || lv.date);
-                    const lNote = lv.Note || lv.note || lv.Reason || lv.reason || '全天休';
-                    if (lName === "Richard" || lName === "TsaiMing") lGrp = "KGB220";
-
-                    if (lName && lDate) {
-                        loaded.push({
-                            id: "api_" + idx,
-                            name: lName,
-                            group: lGrp,
-                            date: lDate,
-                            reason: lNote
-                        });
-                    }
-                });
-            }
-
-            // 3. Events Data
-            if (json.events && json.events.length > 0) {
-                json.events.forEach((ev, idx) => {
-                    const eName = ev.Name || ev.name || ev.Title || ev.title;
-                    const eDate = parseDateStandard(ev.Date || ev.date);
-                    if (eName && eDate) {
-                        loaded.push({
-                            id: "event_" + idx,
-                            name: eName,
-                            group: "Event",
-                            date: eDate,
-                            reason: eName
-                        });
-                    }
-                });
-            }
-
-            leavesData = loaded;
-
-            // Merge local added records
-            const localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v9") || "[]");
-            localSaved.forEach(rec => leavesData.push(rec));
-
-            renderAll();
-        }
-
-        // Global JSONP callback
-        window.handleAppsScriptData = function(data) {
-            processApiResponse(data);
-        };
-
-        // Fetch Live Data: Dual-route (fetch + JSONP fallback)
-        async function fetchSheetData() {
-            try {
-                const response = await fetch(APPS_SCRIPT_URL, {
-                    method: 'GET',
-                    mode: 'cors',
-                    redirect: 'follow'
-                });
-                const json = await response.json();
-                processApiResponse(json);
-            } catch (err) {
-                console.warn("Direct fetch unsuccessful, invoking JSONP route...", err);
-                const oldScript = document.getElementById("jsonpScript");
-                if (oldScript) oldScript.remove();
-                const script = document.createElement("script");
-                script.id = "jsonpScript";
-                script.src = APPS_SCRIPT_URL + (APPS_SCRIPT_URL.includes("?") ? "&" : "?") + "callback=handleAppsScriptData";
-                document.body.appendChild(script);
-            }
         }
 
         // States & Date
@@ -521,9 +430,10 @@
             return html;
         }
 
-        // Render: Starts strictly from CURRENT MONTH through Dec 2027 (No past months)
+        // Render Immediately (Starts from CURRENT MONTH to Dec 2027)
         function renderAll() {
             const mainGrid = document.getElementById('mainCalendarGrid');
+            if (!mainGrid) return;
             mainGrid.innerHTML = '';
 
             let mainYear = curY, mainMonth = curM;
@@ -531,6 +441,93 @@
                 mainGrid.innerHTML += renderMonthCalendar(mainYear, mainMonth);
                 mainMonth++;
                 if (mainMonth > 12) { mainMonth = 1; mainYear++; }
+            }
+        }
+
+        // Process data returned from Apps Script
+        function processApiResponse(json) {
+            let loaded = [];
+            if (!json) return;
+
+            if (json.staff && json.staff.length > 0) {
+                const newGrp = { "KGB200": [], "KGB210": [], "KGB220": [], "KGB250": [] };
+                json.staff.forEach(st => {
+                    const sName = st.Name || st.name;
+                    let sGrp = st.Group || st.group;
+                    if (sName === "Richard" || sName === "TsaiMing") sGrp = "KGB220";
+                    if (newGrp[sGrp]) newGrp[sGrp].push(sName);
+                });
+                GROUPS_DATA = newGrp;
+                setupDropdowns();
+            }
+
+            if (json.leaves && json.leaves.length > 0) {
+                json.leaves.forEach((lv, idx) => {
+                    const lName = lv.Name || lv.name;
+                    let lGrp = lv.Group || lv.group;
+                    const lDate = parseDateStandard(lv.Date || lv.date);
+                    const lNote = lv.Note || lv.note || lv.Reason || lv.reason || '全天休';
+                    if (lName === "Richard" || lName === "TsaiMing") lGrp = "KGB220";
+
+                    if (lName && lDate) {
+                        loaded.push({
+                            id: "api_" + idx,
+                            name: lName,
+                            group: lGrp,
+                            date: lDate,
+                            reason: lNote
+                        });
+                    }
+                });
+            }
+
+            if (json.events && json.events.length > 0) {
+                json.events.forEach((ev, idx) => {
+                    const eName = ev.Name || ev.name || ev.Title || ev.title;
+                    const eDate = parseDateStandard(ev.Date || ev.date);
+                    if (eName && eDate) {
+                        loaded.push({
+                            id: "event_" + idx,
+                            name: eName,
+                            group: "Event",
+                            date: eDate,
+                            reason: eName
+                        });
+                    }
+                });
+            }
+
+            leavesData = loaded;
+
+            // Merge local added records
+            const localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v10") || "[]");
+            localSaved.forEach(rec => leavesData.push(rec));
+
+            renderAll();
+        }
+
+        window.handleAppsScriptData = function(data) {
+            processApiResponse(data);
+        };
+
+        // Fetch Live Data
+        async function fetchSheetData() {
+            try {
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'GET',
+                    mode: 'cors',
+                    redirect: 'follow'
+                });
+                const json = await response.json();
+                processApiResponse(json);
+            } catch (err) {
+                console.warn("Direct fetch fallback to JSONP...", err);
+                const oldScript = document.getElementById("jsonpScript");
+                if (oldScript) oldScript.remove();
+                const script = document.createElement("script");
+                script.id = "jsonpScript";
+                script.src = APPS_SCRIPT_URL + (APPS_SCRIPT_URL.includes("?") ? "&" : "?") + "callback=handleAppsScriptData";
+                document.body.appendChild(script);
             }
         }
 
@@ -598,9 +595,9 @@
             };
             leavesData.push(newRec);
 
-            const localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v9") || "[]");
+            const localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v10") || "[]");
             localSaved.push(newRec);
-            localStorage.setItem("kgb_local_records_v9", JSON.stringify(localSaved));
+            localStorage.setItem("kgb_local_records_v10", JSON.stringify(localSaved));
 
             document.getElementById("slotSelectorBox").style.display = "none";
             document.getElementById("sel_" + pendingGroup).value = "";
@@ -614,9 +611,9 @@
         function removeRecord(id) {
             if (confirm("Delete this record?")) {
                 leavesData = leavesData.filter(x => x.id !== id);
-                let localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v9") || "[]");
+                let localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v10") || "[]");
                 localSaved = localSaved.filter(x => x.id !== id);
-                localStorage.setItem("kgb_local_records_v9", JSON.stringify(localSaved));
+                localStorage.setItem("kgb_local_records_v10", JSON.stringify(localSaved));
 
                 renderModalRecords();
                 renderAll();
@@ -639,8 +636,11 @@
             renderAll();
         }
 
-        // Run
+        // 1. 初始化下拉選單
         setupDropdowns();
+        // 2. 立即繪製月曆（保證網頁打開立刻能看見月曆，絕不空白）
+        renderAll();
+        // 3. 背景非同步向 Google Sheet 抓取最新休假資料
         fetchSheetData();
     </script>
 </body>
