@@ -27,10 +27,10 @@
             --qa-250-bg: #e7f5ff;
             --qa-250-lbl: #3b82f6;
 
-            /* Button & Tag Styling */
-            --leave-green-bg: #1e7e34; /* Dark green */
-            --outing-gray-bg: #495057; /* Dark gray */
-            --tag-event-bg: #8b5cf6;   /* Events Purple */
+            /* Button & Tag Styling: 休假灰底白字，外出綠底白字 */
+            --leave-gray-bg: #4b5563;  /* 灰背景 */
+            --outing-green-bg: #15803d; /* 綠背景 */
+            --tag-event-bg: #8b5cf6;   /* Events 紫色 */
 
             --today-orange: #FF8C00;
         }
@@ -70,24 +70,9 @@
         }
         .refresh-btn:hover { background: #f1f5f9; }
 
-        /* Main Layout */
-        .content-layout { display: flex; gap: 16px; align-items: flex-start; }
-
-        /* Left Sidebar: Archived Past Months */
-        .sidebar-past {
-            width: 90px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px;
-            max-height: calc(100vh - 110px); overflow-y: auto; padding-right: 2px;
-        }
-        .past-month-btn {
-            background: #ffffff; border: 1px solid var(--border-color); border-radius: 8px;
-            padding: 6px 3px; font-size: 0.75rem; font-weight: 600; color: #64748b;
-            text-align: center; cursor: pointer; transition: all 0.15s;
-        }
-        .past-month-btn:hover { background: #f1f5f9; color: #1e293b; }
-
-        /* Right Calendar Grid: 5 Columns */
+        /* Main Calendar Grid: 5 Columns, starting directly from Current Month */
         .calendar-grid-wrapper {
-            flex-grow: 1;
+            width: 100%;
             display: grid;
             grid-template-columns: repeat(5, minmax(200px, 1fr));
             gap: 14px;
@@ -102,8 +87,6 @@
             .calendar-grid-wrapper { grid-template-columns: repeat(2, minmax(170px, 1fr)); }
         }
         @media (max-width: 600px) {
-            .content-layout { flex-direction: column; }
-            .sidebar-past { width: 100%; flex-direction: row; flex-wrap: wrap; }
             .calendar-grid-wrapper { grid-template-columns: 1fr; }
         }
 
@@ -152,8 +135,8 @@
             text-align: center; font-weight: 700; color: #ffffff !important;
             cursor: pointer;
         }
-        .tag-leave  { background-color: var(--leave-green-bg) !important; } /* 深綠 */
-        .tag-outing { background-color: var(--outing-gray-bg) !important; } /* 深灰 */
+        .tag-leave  { background-color: var(--leave-gray-bg) !important; }  /* 休假灰底白字 */
+        .tag-outing { background-color: var(--outing-green-bg) !important; } /* 外出綠底白字 */
         .tag-event  { background-color: var(--tag-event-bg) !important; }   /* 紫色 */
 
         /* Modal Styles */
@@ -186,8 +169,8 @@
             font-size: 0.92rem; display: flex; justify-content: space-between; align-items: center;
         }
         .record-row .rec-name { font-weight: 700; color: #1e293b; }
-        .record-row .rec-reason-leave { margin-left: 4px; color: var(--leave-green-bg); font-weight: 600; }
-        .record-row .rec-reason-outing { margin-left: 4px; color: var(--outing-gray-bg); font-weight: 600; }
+        .record-row .rec-reason-leave { margin-left: 4px; color: var(--leave-gray-bg); font-weight: 600; }
+        .record-row .rec-reason-outing { margin-left: 4px; color: var(--outing-green-bg); font-weight: 600; }
         .record-row .rec-reason-event { margin-left: 4px; color: var(--tag-event-bg); font-weight: 600; }
         .rec-del-btn {
             color: #ef4444; cursor: pointer; border: none; background: transparent; font-size: 0.85rem; padding: 2px 6px;
@@ -220,7 +203,7 @@
         .lbl-250 { color: var(--qa-250-lbl); }
         .sel-250 { border: 1.8px solid var(--qa-250-border); background-color: var(--qa-250-bg); }
 
-        /* Status Selection Section (Revised as requested) */
+        /* Status Selection Section */
         .slot-selector-box {
             display: none; background: #ffffff; border: 1.5px solid var(--border-color); border-radius: 14px;
             padding: 14px; margin-top: 10px; animation: fadeIn 0.2s ease-in;
@@ -231,16 +214,16 @@
         .btn-section-label { font-size: 0.75rem; font-weight: 700; color: #64748b; margin: 6px 0 4px 0; text-transform: uppercase; }
         .slot-buttons-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
 
-        /* Dark Green Background, White Texts for 休假 (3 options) */
+        /* 灰背景白字：休假 (3 options) */
         .btn-status-leave {
-            background-color: var(--leave-green-bg); color: #ffffff; border: none; border-radius: 8px;
+            background-color: var(--leave-gray-bg); color: #ffffff; border: none; border-radius: 8px;
             padding: 7px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
         }
         .btn-status-leave:hover { opacity: 0.9; }
 
-        /* Dark Gray Background, White Texts for 外出 (4 options) */
+        /* 綠背景白字：外出與出差 (4 options) */
         .btn-status-outing {
-            background-color: var(--outing-gray-bg); color: #ffffff; border: none; border-radius: 8px;
+            background-color: var(--outing-green-bg); color: #ffffff; border: none; border-radius: 8px;
             padding: 7px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
         }
         .btn-status-outing:hover { opacity: 0.9; }
@@ -250,7 +233,7 @@
 
     <!-- Header Navigation -->
     <div class="top-bar">
-        <div class="app-title">🗓 KGB200 Calendar</div>
+        <div class="app-title">🗓️ KGB200 Calendar</div>
         <div class="filter-container">
             <button class="filter-btn btn-all active" onclick="setGroupFilter('ALL', this)">All</button>
             <button class="filter-btn btn-200" onclick="setGroupFilter('KGB200', this)">KGB200 Tony</button>
@@ -265,20 +248,14 @@
         </div>
     </div>
 
-    <!-- Main Content Layout -->
-    <div class="content-layout">
-        <!-- Left Sidebar: Past Months -->
-        <div class="sidebar-past" id="pastMonthsContainer"></div>
-
-        <!-- Right: Main 5-Column Grid -->
-        <div class="calendar-grid-wrapper" id="mainCalendarGrid"></div>
-    </div>
+    <!-- Main Grid (Starts immediately from Current Month to Dec 2027) -->
+    <div class="calendar-grid-wrapper" id="mainCalendarGrid"></div>
 
     <!-- Modal: View & Quick Add -->
     <div class="modal-mask" id="actionModal" onclick="if(event.target===this) closeModal()">
         <div class="modal-card-box">
             <div class="modal-header-row">
-                <div class="modal-date-title">📍 <span id="modalDateDisplay">Sep 7, 2026</span></div>
+                <div class="modal-date-title">📍 <span id="modalDateDisplay">Date</span></div>
                 <button class="modal-close-icon" onclick="closeModal()">×</button>
             </div>
 
@@ -314,11 +291,11 @@
                 </div>
             </div>
 
-            <!-- Status Buttons Section (Matches revise.jpg) -->
+            <!-- Status Buttons Section -->
             <div class="slot-selector-box" id="slotSelectorBox">
                 <div class="slot-title">Select status for <strong id="selectedMemberNameText"></strong>:</div>
                 
-                <!-- Dark green background, white texts: 3 items -->
+                <!-- 灰底白字：休假 (3種) -->
                 <div class="btn-section-label">休假 (Leave)</div>
                 <div class="slot-buttons-grid">
                     <button class="btn-status-leave" onclick="confirmAddWithSlot('上午休')">上午休</button>
@@ -326,7 +303,7 @@
                     <button class="btn-status-leave" onclick="confirmAddWithSlot('全天休')">全天休</button>
                 </div>
 
-                <!-- Dark gray background, white texts: 4 items -->
+                <!-- 綠底白字：外出 (4種) -->
                 <div class="btn-section-label">外出 (Outing)</div>
                 <div class="slot-buttons-grid">
                     <button class="btn-status-outing" onclick="confirmAddWithSlot('上午外出')">上午外出</button>
@@ -338,22 +315,11 @@
         </div>
     </div>
 
-    <!-- Modal: Past Month Calendar -->
-    <div class="modal-mask" id="historyModal" onclick="if(event.target===this) closeHistoryModal()">
-        <div class="modal-card-box" style="max-width: 400px;">
-            <div class="modal-header-row">
-                <div class="modal-date-title" id="historyModalTitle">Calendar</div>
-                <button class="modal-close-icon" onclick="closeHistoryModal()">×</button>
-            </div>
-            <div id="historyCalendarWrapper"></div>
-        </div>
-    </div>
-
     <script>
         // Apps Script Web App Deployment URL
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyQ2pyXJZfAZVMA1SB8XJc2m3i4tdqTYJCwUa1KoGodr1tSwy_dfljN_CkGIGElA6Uo7Q/exec";
 
-        // Group Staff Definition (Richard & TsaiMing are in KGB220)
+        // Group Staff Definition (Richard & TsaiMing in KGB220)
         let GROUPS_DATA = {
             "KGB200": ["Tony"],
             "KGB210": ["Esther", "Jasmin", "Sophie", "Edna", "Sandy", "Mars", "Helen", "Ann", "Harry", "Ming", "Dino"],
@@ -375,20 +341,18 @@
             return String(dateStr).trim();
         }
 
-        // Category Classification according to revise.jpg
+        // Tag classification: 休假灰底白字，外出綠底白字，活動紫色
         function getStatusCategory(group, reason) {
             if (group === "Event" || (reason && (reason.includes("季會") || reason.includes("節") || reason.includes("公休")))) {
                 return "tag-event";
             }
-            // 外出: 深灰底白字
             if (reason && (reason.includes("外出") || reason.includes("出差") || reason.includes("Outing") || reason.includes("Trip"))) {
-                return "tag-outing";
+                return "tag-outing"; // 綠底白字
             }
-            // 休假: 深綠底白字
-            return "tag-leave";
+            return "tag-leave"; // 灰底白字
         }
 
-        // Process data returned from Apps Script
+        // Process data payload
         function processApiResponse(json) {
             let loaded = [];
             if (!json) return;
@@ -446,35 +410,36 @@
 
             leavesData = loaded;
 
-            // Merge locally added records
-            const localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v8") || "[]");
+            // Merge local added records
+            const localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v9") || "[]");
             localSaved.forEach(rec => leavesData.push(rec));
 
             renderAll();
         }
 
-        // Fetch Live Data with Redirect Handling
+        // Global JSONP callback
+        window.handleAppsScriptData = function(data) {
+            processApiResponse(data);
+        };
+
+        // Fetch Live Data: Dual-route (fetch + JSONP fallback)
         async function fetchSheetData() {
             try {
                 const response = await fetch(APPS_SCRIPT_URL, {
                     method: 'GET',
+                    mode: 'cors',
                     redirect: 'follow'
                 });
                 const json = await response.json();
                 processApiResponse(json);
             } catch (err) {
-                console.warn("Direct fetch error, trying proxy...", err);
-                // Fallback attempt via standard CORS proxy if network is strictly blocked
-                try {
-                    const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(APPS_SCRIPT_URL);
-                    const res = await fetch(proxyUrl);
-                    const data = await res.json();
-                    const parsed = JSON.parse(data.contents);
-                    processApiResponse(parsed);
-                } catch(e) {
-                    console.error("Failed to load Google Sheet data", e);
-                    renderAll();
-                }
+                console.warn("Direct fetch unsuccessful, invoking JSONP route...", err);
+                const oldScript = document.getElementById("jsonpScript");
+                if (oldScript) oldScript.remove();
+                const script = document.createElement("script");
+                script.id = "jsonpScript";
+                script.src = APPS_SCRIPT_URL + (APPS_SCRIPT_URL.includes("?") ? "&" : "?") + "callback=handleAppsScriptData";
+                document.body.appendChild(script);
             }
         }
 
@@ -489,7 +454,7 @@
         const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
         const today = new Date();
         const curY = today.getFullYear();
-        const curM = today.getMonth() + 1;
+        const curM = today.getMonth() + 1; // Current Month (1-12)
         const todayStr = `${curY}-${String(curM).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
 
         function setupDropdowns() {
@@ -556,24 +521,10 @@
             return html;
         }
 
+        // Render: Starts strictly from CURRENT MONTH through Dec 2027 (No past months)
         function renderAll() {
-            const pastContainer = document.getElementById('pastMonthsContainer');
             const mainGrid = document.getElementById('mainCalendarGrid');
-            pastContainer.innerHTML = '';
             mainGrid.innerHTML = '';
-
-            let startYear = 2026, startMonth = 1;
-            while (startYear < curY || (startYear === curY && startMonth < curM)) {
-                const y = startYear, m = startMonth;
-                const btn = document.createElement('button');
-                btn.className = 'past-month-btn';
-                btn.textContent = `${monthNames[m - 1]} ${y}`;
-                btn.onclick = () => openHistoryModal(y, m);
-                pastContainer.appendChild(btn);
-
-                startMonth++;
-                if (startMonth > 12) { startMonth = 1; startYear++; }
-            }
 
             let mainYear = curY, mainMonth = curM;
             while (mainYear < 2027 || (mainYear === 2027 && mainMonth <= 12)) {
@@ -647,9 +598,9 @@
             };
             leavesData.push(newRec);
 
-            const localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v8") || "[]");
+            const localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v9") || "[]");
             localSaved.push(newRec);
-            localStorage.setItem("kgb_local_records_v8", JSON.stringify(localSaved));
+            localStorage.setItem("kgb_local_records_v9", JSON.stringify(localSaved));
 
             document.getElementById("slotSelectorBox").style.display = "none";
             document.getElementById("sel_" + pendingGroup).value = "";
@@ -663,9 +614,9 @@
         function removeRecord(id) {
             if (confirm("Delete this record?")) {
                 leavesData = leavesData.filter(x => x.id !== id);
-                let localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v8") || "[]");
+                let localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v9") || "[]");
                 localSaved = localSaved.filter(x => x.id !== id);
-                localStorage.setItem("kgb_local_records_v8", JSON.stringify(localSaved));
+                localStorage.setItem("kgb_local_records_v9", JSON.stringify(localSaved));
 
                 renderModalRecords();
                 renderAll();
@@ -675,15 +626,6 @@
         function closeModal() {
             document.getElementById("actionModal").style.display = "none";
             document.getElementById("slotSelectorBox").style.display = "none";
-        }
-
-        function openHistoryModal(year, month) {
-            document.getElementById("historyModalTitle").textContent = `${monthNames[month - 1]} ${year}`;
-            document.getElementById("historyCalendarWrapper").innerHTML = renderMonthCalendar(year, month);
-            document.getElementById("historyModal").style.display = "flex";
-        }
-        function closeHistoryModal() {
-            document.getElementById("historyModal").style.display = "none";
         }
 
         function setGroupFilter(group, btn) {
