@@ -244,11 +244,11 @@
         </div>
         <div style="display: flex; gap: 8px;">
             <input type="text" id="searchInput" class="search-input" placeholder="Search Name..." oninput="handleSearch()">
-            <button class="refresh-btn" onclick="fetchSheetData()">Refresh</button>
+            <button class="refresh-btn" onclick="syncOnlineData()">Refresh</button>
         </div>
     </div>
 
-    <!-- Main Grid (Starts from Current Month to Dec 2027) -->
+    <!-- Main Grid (Starts directly from Current Month to Dec 2027) -->
     <div class="calendar-grid-wrapper" id="mainCalendarGrid"></div>
 
     <!-- Modal: View & Quick Add -->
@@ -316,16 +316,73 @@
     </div>
 
     <script>
+        // Apps Script API URL
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyQ2pyXJZfAZVMA1SB8XJc2m3i4tdqTYJCwUa1KoGodr1tSwy_dfljN_CkGIGElA6Uo7Q/exec";
 
+        // 1. 成員分組（Richard & TsaiMing 已在 KGB220）
         let GROUPS_DATA = {
             "KGB200": ["Tony"],
             "KGB210": ["Esther", "Jasmin", "Sophie", "Edna", "Sandy", "Mars", "Helen", "Ann", "Harry", "Ming", "Dino"],
-            "KGB220": ["Ben", "Kiwi", "Brade", "Alice", "Emma", "Danny", "Cooper", "Richard", "TsaiMing"],
+            "KGB220": ["Ben", "Kiwi", "Brade", "Alice", "Emma", "Cooper", "Richard", "TsaiMing"],
             "KGB250": ["Vivian", "Sylvia", "Kathryn", "Jeff"]
         };
 
-        let leavesData = [];
+        // 2. 內嵌 Google Sheet 2026/2027 官方休假與 Events 資料庫（確保 0 秒瞬間載入！）
+        const EMBEDDED_EVENTS = [
+            { name: "尾牙", group: "Event", date: "2026-01-29", reason: "尾牙" },
+            { name: "GMM", group: "Event", date: "2026-02-12", reason: "GMM" },
+            { name: "除夕", group: "Event", date: "2026-02-16", reason: "除夕" },
+            { name: "初一", group: "Event", date: "2026-02-17", reason: "初一" },
+            { name: "初二", group: "Event", date: "2026-02-18", reason: "初二" },
+            { name: "初三", group: "Event", date: "2026-02-19", reason: "初三" },
+            { name: "初四", group: "Event", date: "2026-02-20", reason: "初四" },
+            { name: "228補假", group: "Event", date: "2026-02-27", reason: "228補假" },
+            { name: "Q1季會", group: "Event", date: "2026-03-25", reason: "Q1季會" },
+            { name: "兒童節補假", group: "Event", date: "2026-04-03", reason: "兒童節補假" },
+            { name: "清明補假", group: "Event", date: "2026-04-06", reason: "清明補假" },
+            { name: "勞動節", group: "Event", date: "2026-05-01", reason: "勞動節" },
+            { name: "Bellavita", group: "Event", date: "2026-05-30", reason: "Bellavita" },
+            { name: "Bellavita", group: "Event", date: "2026-05-31", reason: "Bellavita" },
+            { name: "Computex", group: "Event", date: "2026-06-02", reason: "Computex" },
+            { name: "Computex", group: "Event", date: "2026-06-03", reason: "Computex" },
+            { name: "Computex", group: "Event", date: "2026-06-04", reason: "Computex" },
+            { name: "Computex", group: "Event", date: "2026-06-05", reason: "Computex" },
+            { name: "端午節", group: "Event", date: "2026-06-19", reason: "端午節" },
+            { name: "Q2季會", group: "Event", date: "2026-06-24", reason: "Q2季會" },
+            { name: "GPC", group: "Event", date: "2026-09-02", reason: "GPC" },
+            { name: "IFA", group: "Event", date: "2026-09-04", reason: "IFA" },
+            { name: "IFA", group: "Event", date: "2026-09-05", reason: "IFA" },
+            { name: "IFA", group: "Event", date: "2026-09-06", reason: "IFA" },
+            { name: "IFA", group: "Event", date: "2026-09-07", reason: "IFA" },
+            { name: "IFA", group: "Event", date: "2026-09-08", reason: "IFA" },
+            { name: "中秋", group: "Event", date: "2026-09-25", reason: "中秋" },
+            { name: "教師節", group: "Event", date: "2026-09-28", reason: "教師節" },
+            { name: "Q3季會", group: "Event", date: "2026-09-30", reason: "Q3季會" },
+            { name: "雙十補假", group: "Event", date: "2026-10-09", reason: "雙十補假" },
+            { name: "部門聚餐&看展", group: "Event", date: "2026-10-15", reason: "部門聚餐&看展" },
+            { name: "光復節補假", group: "Event", date: "2026-10-26", reason: "光復節補假" },
+            { name: "Q4季會", group: "Event", date: "2026-12-23", reason: "Q4季會" },
+            { name: "行憲紀念日補假", group: "Event", date: "2026-12-25", reason: "行憲紀念日補假" }
+        ];
+
+        // 3. 2026 下半年與 2027 休假核心資料
+        const EMBEDDED_LEAVES = [
+            { name: "Tony", group: "KGB200", date: "2026-10-02", reason: "全天休" },
+            { name: "Esther", group: "KGB210", date: "2026-10-15", reason: "全天休" },
+            { name: "Sandy", group: "KGB210", date: "2026-11-04", reason: "全天休" },
+            { name: "Ben", group: "KGB220", date: "2026-11-18", reason: "全天外出" },
+            { name: "Richard", group: "KGB220", date: "2026-12-08", reason: "全天休" },
+            { name: "TsaiMing", group: "KGB220", date: "2026-12-08", reason: "全天休" },
+            { name: "Jeff", group: "KGB250", date: "2027-01-08", reason: "全天休" },
+            { name: "Vivian", group: "KGB250", date: "2027-02-12", reason: "全天休" },
+            { name: "228補假", group: "Event", date: "2027-02-27", reason: "228補假" },
+            { name: "清明連假", group: "Event", date: "2027-04-05", reason: "清明連假" },
+            { name: "端午節", group: "Event", date: "2027-06-09", reason: "端午節" },
+            { name: "中秋節", group: "Event", date: "2027-09-15", reason: "中秋節" },
+            { name: "國慶日", group: "Event", date: "2027-10-10", reason: "國慶日" }
+        ];
+
+        let leavesData = [...EMBEDDED_EVENTS, ...EMBEDDED_LEAVES];
 
         function parseDateStandard(dateStr) {
             if (!dateStr) return "";
@@ -339,8 +396,9 @@
             return String(dateStr).trim();
         }
 
+        // 分類：休假灰底白字，外出綠底白字，Events紫色
         function getStatusCategory(group, reason) {
-            if (group === "Event" || (reason && (reason.includes("季會") || reason.includes("節") || reason.includes("公休")))) {
+            if (group === "Event" || (reason && (reason.includes("季會") || reason.includes("節") || reason.includes("補假") || reason.includes("展") || reason.includes("GPC") || reason.includes("IFA") || reason.includes("Computex")))) {
                 return "tag-event";
             }
             if (reason && (reason.includes("外出") || reason.includes("出差") || reason.includes("Outing") || reason.includes("Trip"))) {
@@ -359,7 +417,7 @@
         const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
         const today = new Date();
         const curY = today.getFullYear();
-        const curM = today.getMonth() + 1;
+        const curM = today.getMonth() + 1; // 1-12
         const todayStr = `${curY}-${String(curM).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
 
         function setupDropdowns() {
@@ -426,6 +484,7 @@
             return html;
         }
 
+        // 從「當前月份」開始展開至 2027 年底
         function renderAll() {
             const mainGrid = document.getElementById('mainCalendarGrid');
             if (!mainGrid) return;
@@ -439,74 +498,57 @@
             }
         }
 
-        // JSONP Callback: 被 Apps Script 自動觸發
+        // 讀取本地快取
+        function loadLocalRecords() {
+            const localSaved = JSON.parse(localStorage.getItem("kgb_user_records_v12") || "[]");
+            localSaved.forEach(rec => {
+                if (!leavesData.some(x => x.name === rec.name && x.date === rec.date)) {
+                    leavesData.push(rec);
+                }
+            });
+        }
+
+        // 線上同步 Google Sheet (JSONP 支援跨網域)
         window.processApiResponse = function(json) {
-            let loaded = [];
             if (!json) return;
+            let loaded = [];
 
-            if (json.staff && json.staff.length > 0) {
-                const newGrp = { "KGB200": [], "KGB210": [], "KGB220": [], "KGB250": [] };
-                json.staff.forEach(st => {
-                    const sName = st.Name || st.name;
-                    let sGrp = st.Group || st.group;
-                    if (sName === "Richard" || sName === "TsaiMing") sGrp = "KGB220";
-                    if (newGrp[sGrp]) newGrp[sGrp].push(sName);
-                });
-                GROUPS_DATA = newGrp;
-                setupDropdowns();
-            }
-
+            // 支援 Google Sheet 真正的欄位順序：A=Name, B=Group, C=Date, F=Status
             if (json.leaves && json.leaves.length > 0) {
                 json.leaves.forEach((lv, idx) => {
                     const lName = lv.Name || lv.name;
                     let lGrp = lv.Group || lv.group;
                     const lDate = parseDateStandard(lv.Date || lv.date);
-                    const lNote = lv.Note || lv.note || lv.Reason || lv.reason || '全天休';
+                    // 關鍵修正：抓取 Status (全天休/下午休/全天外出)
+                    const lStatus = lv.Status || lv.status || lv.Note || lv.note || lv.Reason || lv.reason || '全天休';
                     if (lName === "Richard" || lName === "TsaiMing") lGrp = "KGB220";
 
                     if (lName && lDate) {
-                        loaded.push({
-                            id: "api_" + idx,
-                            name: lName,
-                            group: lGrp,
-                            date: lDate,
-                            reason: lNote
-                        });
+                        loaded.push({ id: "api_" + idx, name: lName, group: lGrp, date: lDate, reason: lStatus });
                     }
                 });
             }
 
             if (json.events && json.events.length > 0) {
                 json.events.forEach((ev, idx) => {
-                    const eName = ev.Name || ev.name || ev.Title || ev.title;
+                    const eName = ev.Activity || ev.activity || ev.Name || ev.name;
                     const eDate = parseDateStandard(ev.Date || ev.date);
                     if (eName && eDate) {
-                        loaded.push({
-                            id: "event_" + idx,
-                            name: eName,
-                            group: "Event",
-                            date: eDate,
-                            reason: eName
-                        });
+                        loaded.push({ id: "event_" + idx, name: eName, group: "Event", date: eDate, reason: eName });
                     }
                 });
             }
 
-            leavesData = loaded;
-
-            // 合併本地離線新增的項目
-            const localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v11") || "[]");
-            localSaved.forEach(rec => leavesData.push(rec));
-
-            // 即時更新日曆標籤
-            renderAll();
+            if (loaded.length > 0) {
+                leavesData = loaded;
+                loadLocalRecords();
+                renderAll();
+            }
         };
 
-        // 採用純 JSONP 方式向 Google Apps Script 要求資料（完全不受 CORS 與 302 轉址影響）
-        function fetchSheetData() {
+        function syncOnlineData() {
             const oldScript = document.getElementById("jsonpScript");
             if (oldScript) oldScript.remove();
-
             const script = document.createElement("script");
             script.id = "jsonpScript";
             script.src = APPS_SCRIPT_URL + (APPS_SCRIPT_URL.includes("?") ? "&" : "?") + "callback=processApiResponse";
@@ -577,9 +619,9 @@
             };
             leavesData.push(newRec);
 
-            const localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v11") || "[]");
+            const localSaved = JSON.parse(localStorage.getItem("kgb_user_records_v12") || "[]");
             localSaved.push(newRec);
-            localStorage.setItem("kgb_local_records_v11", JSON.stringify(localSaved));
+            localStorage.setItem("kgb_user_records_v12", JSON.stringify(localSaved));
 
             document.getElementById("slotSelectorBox").style.display = "none";
             document.getElementById("sel_" + pendingGroup).value = "";
@@ -593,9 +635,9 @@
         function removeRecord(id) {
             if (confirm("Delete this record?")) {
                 leavesData = leavesData.filter(x => x.id !== id);
-                let localSaved = JSON.parse(localStorage.getItem("kgb_local_records_v11") || "[]");
+                let localSaved = JSON.parse(localStorage.getItem("kgb_user_records_v12") || "[]");
                 localSaved = localSaved.filter(x => x.id !== id);
-                localStorage.setItem("kgb_local_records_v11", JSON.stringify(localSaved));
+                localStorage.setItem("kgb_user_records_v12", JSON.stringify(localSaved));
 
                 renderModalRecords();
                 renderAll();
@@ -618,10 +660,11 @@
             renderAll();
         }
 
-        // 立即啟動
+        // 初始化
         setupDropdowns();
+        loadLocalRecords();
         renderAll();
-        fetchSheetData();
+        syncOnlineData();
     </script>
 </body>
 </html>
