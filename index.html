@@ -278,7 +278,7 @@
         </div>
     </div>
 
-    <!-- Main Grid: 4 欄佈局向下展開 -->
+    <!-- Main Grid: 4 欄佈局向下展開至 2028 年 12 月 -->
     <div class="calendar-grid-wrapper" id="mainCalendarGrid"></div>
 
     <!-- Modal: View & Quick Add -->
@@ -461,13 +461,14 @@
             return html;
         }
 
+        // 渲染主網格：從當月開始展開至 2028 年 12 月底
         function renderAll() {
             const mainGrid = document.getElementById('mainCalendarGrid');
             if (!mainGrid) return;
             mainGrid.innerHTML = '';
 
             let mainYear = curY, mainMonth = curM;
-            while (mainYear < 2027 || (mainYear === 2027 && mainMonth <= 12)) {
+            while (mainYear < 2028 || (mainYear === 2028 && mainMonth <= 12)) {
                 mainGrid.innerHTML += renderMonthCalendar(mainYear, mainMonth);
                 mainMonth++;
                 if (mainMonth > 12) { mainMonth = 1; mainYear++; }
@@ -605,12 +606,12 @@
             document.getElementById("slotSelectorBox").style.display = "block";
         }
 
-        // 寫入完成回呼函式：確認 Google Sheet 寫入完畢後，立即重新拉取試算表資料
+        // 寫入完成回呼：確認 Google Sheet 寫入完畢後，重新拉取試算表資料
         window.onWriteComplete = function(resp) {
             setTimeout(fetchSheetsDirect, 800);
         };
 
-        // ★★★ 核心保證：透過 JSONP 100% 成功跨來源寫入 Google Sheet 試算表 ★★★
+        // 透過 JSONP 跨來源寫入 Google Sheet 試算表
         function confirmAddWithSlot(slotName) {
             if (!pendingMember || !pendingGroup) return;
 
@@ -619,7 +620,7 @@
             const dateToAdd = activeDateKey;
             const statusToAdd = slotName;
 
-            // 1. 本地畫面上即時顯示，不等待網路
+            // 1. 本地畫面上即時顯示
             leavesData.push({
                 id: "temp_" + Date.now(),
                 name: nameToAdd,
@@ -630,7 +631,7 @@
             renderModalRecords();
             renderAll();
 
-            // 2. 透過 JSONP Script 將資料寫入 Apps Script（絕對不被瀏覽器擋）
+            // 2. 透過 JSONP Script 將資料寫入 Apps Script -> Google Sheet
             const scriptTag = document.createElement("script");
             scriptTag.src = `${APPS_SCRIPT_URL}?action=addLeave&name=${encodeURIComponent(nameToAdd)}&group=${encodeURIComponent(groupToAdd)}&date=${encodeURIComponent(dateToAdd)}&status=${encodeURIComponent(statusToAdd)}&callback=onWriteComplete&_t=${Date.now()}`;
             document.body.appendChild(scriptTag);
