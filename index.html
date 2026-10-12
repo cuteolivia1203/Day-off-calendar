@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>KGB200 Calendar</title>
     <style>
         :root {
@@ -71,7 +74,7 @@
         }
         .refresh-btn:hover { background: #f1f5f9; }
 
-        /* 4 欄佈局向下展開 */
+        /* 4 欄佈局向下展開至 2028 年 12 月 */
         .calendar-grid-wrapper {
             width: 100%;
             display: grid;
@@ -205,6 +208,10 @@
         .record-row .rec-reason-leave { margin-left: 4px; color: var(--leave-gray-bg); font-weight: 600; }
         .record-row .rec-reason-outing { margin-left: 4px; color: var(--outing-green-bg); font-weight: 600; }
         .record-row .rec-reason-event { margin-left: 4px; color: var(--tag-event-bg); font-weight: 600; }
+        .rec-del-btn {
+            color: #ef4444; cursor: pointer; border: none; background: transparent; font-size: 0.95rem; font-weight: bold; padding: 2px 6px; line-height: 1;
+        }
+        .rec-del-btn:hover { color: #dc2626; }
 
         /* Quick Add Area */
         .quick-add-title {
@@ -388,7 +395,7 @@
         const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
         const today = new Date();
         const curY = today.getFullYear();
-        const curM = today.getMonth() + 1; // 1-12
+        const curM = today.getMonth() + 1;
         const todayStr = `${curY}-${String(curM).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
 
         function setupDropdowns() {
@@ -461,7 +468,6 @@
             return html;
         }
 
-        // 渲染主網格：從當月開始展開至 2028 年 12 月底
         function renderAll() {
             const mainGrid = document.getElementById('mainCalendarGrid');
             if (!mainGrid) return;
@@ -583,11 +589,16 @@
                 if (cat === "tag-outing") reasonClass = "rec-reason-outing";
                 if (cat === "tag-event") reasonClass = "rec-reason-event";
 
+                // 如果是 Event 類別則不顯示刪除按鈕，假單同仁紀錄顯示紅色 ✕
+                const isEvent = (rec.group === "Event");
+                const delBtnHtml = isEvent ? '' : `<button class="rec-del-btn" type="button" title="Delete" onclick="deleteRecord('${rec.id}', '${rec.name}', '${rec.date}')">✕</button>`;
+
                 row.innerHTML = `
                     <div>
                         <span class="rec-name">${rec.name}</span>: 
                         <span class="${reasonClass}">${rec.reason || '全天休'}</span>
                     </div>
+                    ${delBtnHtml}
                 `;
                 container.appendChild(row);
             });
@@ -606,12 +617,10 @@
             document.getElementById("slotSelectorBox").style.display = "block";
         }
 
-        // 寫入完成回呼：確認 Google Sheet 寫入完畢後，重新拉取試算表資料
         window.onWriteComplete = function(resp) {
             setTimeout(fetchSheetsDirect, 800);
         };
 
-        // 透過 JSONP 跨來源寫入 Google Sheet 試算表
         function confirmAddWithSlot(slotName) {
             if (!pendingMember || !pendingGroup) return;
 
@@ -620,7 +629,6 @@
             const dateToAdd = activeDateKey;
             const statusToAdd = slotName;
 
-            // 1. 本地畫面上即時顯示
             leavesData.push({
                 id: "temp_" + Date.now(),
                 name: nameToAdd,
@@ -631,17 +639,30 @@
             renderModalRecords();
             renderAll();
 
-            // 2. 透過 JSONP Script 將資料寫入 Apps Script -> Google Sheet
             const scriptTag = document.createElement("script");
             scriptTag.src = `${APPS_SCRIPT_URL}?action=addLeave&name=${encodeURIComponent(nameToAdd)}&group=${encodeURIComponent(groupToAdd)}&date=${encodeURIComponent(dateToAdd)}&status=${encodeURIComponent(statusToAdd)}&callback=onWriteComplete&_t=${Date.now()}`;
             document.body.appendChild(scriptTag);
 
-            // 清除選單
             document.getElementById("slotSelectorBox").style.display = "none";
             const selEl = document.getElementById("sel_" + pendingGroup);
             if (selEl) selEl.value = "";
             pendingMember = null;
             pendingGroup = null;
+        }
+
+        // 刪除紀錄：畫面即時移除，並透過 JSONP 同步刪除 Google Sheet 中的列
+        function deleteRecord(id, name, date) {
+            if (confirm(`確定要刪除 ${name} 於 ${date} 的這筆紀錄嗎？`)) {
+                // 1. 本地立即移除
+                leavesData = leavesData.filter(x => x.id !== id);
+                renderModalRecords();
+                renderAll();
+
+                // 2. 跨來源通知 Google Apps Script 刪除該列
+                const scriptTag = document.createElement("script");
+                scriptTag.src = `${APPS_SCRIPT_URL}?action=deleteLeave&name=${encodeURIComponent(name)}&date=${encodeURIComponent(date)}&callback=onWriteComplete&_t=${Date.now()}`;
+                document.body.appendChild(scriptTag);
+            }
         }
 
         function closeModal() {
@@ -660,7 +681,6 @@
             renderAll();
         }
 
-        // 初始化啟動
         setupDropdowns();
         renderAll();
         fetchSheetsDirect();
