@@ -209,9 +209,10 @@
         .record-row .rec-reason-outing { margin-left: 4px; color: var(--outing-green-bg); font-weight: 600; }
         .record-row .rec-reason-event { margin-left: 4px; color: var(--tag-event-bg); font-weight: 600; }
         .rec-del-btn {
-            color: #ef4444; cursor: pointer; border: none; background: transparent; font-size: 0.95rem; font-weight: bold; padding: 2px 6px; line-height: 1;
+            color: #ef4444; cursor: pointer; border: none; background: transparent; font-size: 1.1rem; font-weight: bold; padding: 2px 8px; line-height: 1;
+            transition: transform 0.15s;
         }
-        .rec-del-btn:hover { color: #dc2626; }
+        .rec-del-btn:hover { color: #dc2626; transform: scale(1.15); }
 
         /* Quick Add Area */
         .quick-add-title {
@@ -354,6 +355,9 @@
         const SHEET_ID = "1tQsk8QA9hd-xlgEzXe5uImGJy6WIEb0p9igklTlmKZw";
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyQ2pyXJZfAZVMA1SB8XJc2m3i4tdqTYJCwUa1KoGodr1tSwy_dfljN_CkGIGElA6Uo7Q/exec";
 
+        // Admin 具備全域管理權限
+        const ADMIN_USERS = ["Tony", "Esther", "Ben", "Vivian"];
+
         let GROUPS_DATA = {
             "KGB200": ["Tony"],
             "KGB210": ["Esther", "Jasmin", "Sophie", "Edna", "Sandy", "Mars", "Helen", "Ann", "Harry", "Ming", "Dino"],
@@ -422,7 +426,7 @@
                 <div class="month-title">${title}</div>
                 <div class="days-header">
                     <div class="day-label weekend-label">Sun</div><div class="day-label">Mon</div>
-                    <div class="day-label">Tue</div><div class="day-label">Wed</div>
+                    <div class="day-label Tue-label">Tue</div><div class="day-label">Wed</div>
                     <div class="day-label">Thu</div><div class="day-label">Fri</div>
                     <div class="day-label weekend-label">Sat</div>
                 </div>
@@ -566,10 +570,20 @@
             activeDateFormatted = formattedDate;
             document.getElementById("modalDateDisplay").textContent = formattedDate;
             document.getElementById("slotSelectorBox").style.display = "none";
+            
+            // 開啟視窗時重設選單狀態
+            pendingMember = null;
+            pendingGroup = null;
+            ["KGB200", "KGB210", "KGB220", "KGB250"].forEach(g => {
+                const el = document.getElementById("sel_" + g);
+                if (el) el.value = "";
+            });
+
             renderModalRecords();
             document.getElementById("actionModal").style.display = "flex";
         }
 
+        // 嚴格權限比對渲染：只有 Admin 或選取到自己名字時，才顯示該名成員的刪除鍵 ✕
         function renderModalRecords() {
             const container = document.getElementById("recordsListContainer");
             container.innerHTML = '';
@@ -580,6 +594,8 @@
                 return;
             }
 
+            const isAdmin = pendingMember && ADMIN_USERS.includes(pendingMember);
+
             dayRecords.forEach(rec => {
                 const row = document.createElement("div");
                 row.className = "record-row";
@@ -589,9 +605,17 @@
                 if (cat === "tag-outing") reasonClass = "rec-reason-outing";
                 if (cat === "tag-event") reasonClass = "rec-reason-event";
 
-                // 如果是 Event 類別則不顯示刪除按鈕，假單同仁紀錄顯示紅色 ✕
-                const isEvent = (rec.group === "Event");
-                const delBtnHtml = isEvent ? '' : `<button class="rec-del-btn" type="button" title="Delete" onclick="deleteRecord('${rec.id}', '${rec.name}', '${rec.date}')">✕</button>`;
+                // 權限檢查：Event 絕不能刪；只有 Admin 或選到自己名字時才出現刪除叉叉
+                let canDelete = false;
+                if (rec.group !== "Event") {
+                    if (isAdmin) {
+                        canDelete = true; // Admin 可刪除所有人
+                    } else if (pendingMember && pendingMember === rec.name) {
+                        canDelete = true; // 一般成員選到自己時，只可刪除自己
+                    }
+                }
+
+                const delBtnHtml = canDelete ? `<button class="rec-del-btn" type="button" title="Delete" onclick="deleteRecord('${rec.id}', '${rec.name}', '${rec.date}')">✕</button>` : '';
 
                 row.innerHTML = `
                     <div>
@@ -606,15 +630,31 @@
 
         function onMemberSelected(group, selectElement) {
             const memberName = selectElement.value;
+            
+            // 清理其他下拉選單，確保一次只選取一人
+            ["KGB200", "KGB210", "KGB220", "KGB250"].forEach(g => {
+                if (g !== group) {
+                    const other = document.getElementById("sel_" + g);
+                    if (other) other.value = "";
+                }
+            });
+
             if (!memberName) {
+                pendingMember = null;
+                pendingGroup = null;
                 document.getElementById("slotSelectorBox").style.display = "none";
+                renderModalRecords(); // 恢復全域唯讀無叉叉狀態
                 return;
             }
+
             pendingMember = memberName;
             pendingGroup = group;
             
             document.getElementById("selectedMemberNameText").textContent = `${memberName} (${group})`;
             document.getElementById("slotSelectorBox").style.display = "block";
+
+            // 依據選取的同仁身分，動態解鎖其專屬刪除叉叉
+            renderModalRecords();
         }
 
         window.onWriteComplete = function(resp) {
@@ -648,17 +688,22 @@
             if (selEl) selEl.value = "";
             pendingMember = null;
             pendingGroup = null;
+            renderModalRecords(); // 新增完成後重新收合刪除權限
         }
 
-        // 刪除紀錄：畫面即時移除，並透過 JSONP 同步刪除 Google Sheet 中的列
         function deleteRecord(id, name, date) {
+            // 權限二次驗證：防止前端竄改
+            const isAdmin = pendingMember && ADMIN_USERS.includes(pendingMember);
+            if (!isAdmin && pendingMember !== name) {
+                alert("權限不足：您只能刪除自己的假單！");
+                return;
+            }
+
             if (confirm(`確定要刪除 ${name} 於 ${date} 的這筆紀錄嗎？`)) {
-                // 1. 本地立即移除
                 leavesData = leavesData.filter(x => x.id !== id);
                 renderModalRecords();
                 renderAll();
 
-                // 2. 跨來源通知 Google Apps Script 刪除該列
                 const scriptTag = document.createElement("script");
                 scriptTag.src = `${APPS_SCRIPT_URL}?action=deleteLeave&name=${encodeURIComponent(name)}&date=${encodeURIComponent(date)}&callback=onWriteComplete&_t=${Date.now()}`;
                 document.body.appendChild(scriptTag);
@@ -668,6 +713,8 @@
         function closeModal() {
             document.getElementById("actionModal").style.display = "none";
             document.getElementById("slotSelectorBox").style.display = "none";
+            pendingMember = null;
+            pendingGroup = null;
         }
 
         function setGroupFilter(group, btn) {
