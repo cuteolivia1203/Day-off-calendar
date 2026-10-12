@@ -327,9 +327,9 @@
                 
                 <div class="btn-section-label">休假 (Leave)</div>
                 <div class="slot-buttons-grid">
+                    <button class="btn-status-leave" onclick="confirmAddWithSlot('全天休')">全天休</button>
                     <button class="btn-status-leave" onclick="confirmAddWithSlot('上午休')">上午休</button>
                     <button class="btn-status-leave" onclick="confirmAddWithSlot('下午休')">下午休</button>
-                    <button class="btn-status-leave" onclick="confirmAddWithSlot('全天休')">全天休</button>
                 </div>
 
                 <div class="btn-section-label">外出 (Outing)</div>
@@ -345,6 +345,8 @@
 
     <script>
         const SHEET_ID = "1tQsk8QA9hd-xlgEzXe5uImGJy6WIEb0p9igklTlmKZw";
+        // Google Apps Script 寫入與讀取 API 網址
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyQ2pyXJZfAZVMA1SB8XJc2m3i4tdqTYJCwUa1KoGodr1tSwy_dfljN_CkGIGElA6Uo7Q/exec";
 
         // 清理單一設備歷史暫存，確保與全體同仁 100% 同步
         try {
@@ -482,7 +484,7 @@
         let rawLeaves = [];
         let rawEvents = [];
 
-        // 1. 同步 Staff 分頁名單
+        // 1. 同步 Staff 名單
         window.handleStaffGviz = function(res) {
             if (res && res.table && res.table.rows) {
                 const newGroups = { "KGB200": [], "KGB210": [], "KGB220": [], "KGB250": [] };
@@ -502,7 +504,7 @@
             }
         };
 
-        // 2. 同步 Leaves 分頁
+        // 2. 同步 Leaves
         window.handleLeavesGviz = function(res) {
             if (res && res.table && res.table.rows) {
                 rawLeaves = [];
@@ -524,7 +526,7 @@
             }
         };
 
-        // 3. 同步 Events 分頁
+        // 3. 同步 Events
         window.handleEventsGviz = function(res) {
             if (res && res.table && res.table.rows) {
                 rawEvents = [];
@@ -542,13 +544,13 @@
             }
         };
 
-        // 核心連動：100% 只以 Google Sheet 試算表為唯一資料源，全體設備與同仁永遠一致
+        // 核心：100% 以 Google Sheet 為唯一真實來源
         function mergeData() {
             leavesData = [...rawEvents, ...rawLeaves];
             renderAll();
         }
 
-        // 動態注入同時抓取 Staff, Leaves, Events 三張表（加上時間戳記防快取）
+        // 動態注入向 Google Sheet 要求最新數據
         function fetchSheetsDirect() {
             const cacheBuster = Date.now();
             
@@ -619,25 +621,42 @@
             document.getElementById("slotSelectorBox").style.display = "block";
         }
 
+        // ★★★ 關鍵寫入連動：將點選的請假資料真正寫進 Google Sheet 試算表 ★★★
         function confirmAddWithSlot(slotName) {
             if (!pendingMember || !pendingGroup) return;
 
-            // 臨時預覽
+            const nameToAdd = pendingMember;
+            const groupToAdd = pendingGroup;
+            const dateToAdd = activeDateKey;
+            const statusToAdd = slotName;
+
+            // 1. 本地畫面立刻呈現，不讓使用者等待
             leavesData.push({
                 id: "temp_" + Date.now(),
-                name: pendingMember,
-                group: pendingGroup,
-                date: activeDateKey,
-                reason: slotName
+                name: nameToAdd,
+                group: groupToAdd,
+                date: dateToAdd,
+                reason: statusToAdd
             });
+            renderModalRecords();
+            renderAll();
 
+            // 2. 背景透過 Apps Script 正式寫入 Google Sheet 的 Leaves 分頁
+            const writeUrl = `${APPS_SCRIPT_URL}?action=addLeave&name=${encodeURIComponent(nameToAdd)}&group=${encodeURIComponent(groupToAdd)}&date=${encodeURIComponent(dateToAdd)}&status=${encodeURIComponent(statusToAdd)}`;
+            
+            // 使用動態 Script 跨網域發送寫入命令
+            const writeScript = document.createElement("script");
+            writeScript.src = writeUrl;
+            document.body.appendChild(writeScript);
+
+            // 清空選擇狀態並關閉輸入列
             document.getElementById("slotSelectorBox").style.display = "none";
             document.getElementById("sel_" + pendingGroup).value = "";
             pendingMember = null;
             pendingGroup = null;
 
-            renderModalRecords();
-            renderAll();
+            // 1.5 秒後自動背景向試算表重新對齊，確保絕對同步
+            setTimeout(fetchSheetsDirect, 1500);
         }
 
         function closeModal() {
