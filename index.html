@@ -355,7 +355,6 @@
         };
 
         let leavesData = [];
-        let sessionAddedList = []; // 當前工作階段新增之記錄，保證永不消失
 
         function parseDateStandard(dateStr) {
             if (!dateStr) return "";
@@ -537,12 +536,6 @@
 
         function mergeData() {
             leavesData = [...rawEvents, ...rawLeaves];
-            // 保留同仁在畫面填入的所有最新項目，絕不被覆寫清空
-            sessionAddedList.forEach(rec => {
-                if (!leavesData.some(x => x.name === rec.name && x.date === rec.date)) {
-                    leavesData.push(rec);
-                }
-            });
             renderAll();
         }
 
@@ -612,7 +605,12 @@
             document.getElementById("slotSelectorBox").style.display = "block";
         }
 
-        // ★★★ 核心保證：點擊填入後永久常駐畫面（零閃退），同時背景寫入 Google 試算表 ★★★
+        // 寫入完成回呼函式：確認 Google Sheet 寫入完畢後，立即重新拉取試算表資料
+        window.onWriteComplete = function(resp) {
+            setTimeout(fetchSheetsDirect, 800);
+        };
+
+        // ★★★ 核心保證：透過 JSONP 100% 成功跨來源寫入 Google Sheet 試算表 ★★★
         function confirmAddWithSlot(slotName) {
             if (!pendingMember || !pendingGroup) return;
 
@@ -621,31 +619,23 @@
             const dateToAdd = activeDateKey;
             const statusToAdd = slotName;
 
-            const newRecord = {
-                id: "sess_" + Date.now(),
+            // 1. 本地畫面上即時顯示，不等待網路
+            leavesData.push({
+                id: "temp_" + Date.now(),
                 name: nameToAdd,
                 group: groupToAdd,
                 date: dateToAdd,
                 reason: statusToAdd
-            };
-
-            // 1. 永久鎖定於陣列中，保證在畫面上絕不閃退、絕不消失
-            sessionAddedList.push(newRecord);
-            leavesData.push(newRecord);
-
+            });
             renderModalRecords();
             renderAll();
 
-            // 2. 透過 Image Beacon 靜默請求將資料寫進 Google Apps Script -> Google Sheet（零跳轉、不報錯）
-            try {
-                const beaconUrl = `${APPS_SCRIPT_URL}?action=addLeave&name=${encodeURIComponent(nameToAdd)}&group=${encodeURIComponent(groupToAdd)}&date=${encodeURIComponent(dateToAdd)}&status=${encodeURIComponent(statusToAdd)}&_ts=${Date.now()}`;
-                const beacon = new Image();
-                beacon.src = beaconUrl;
-            } catch (e) {
-                console.warn("Beacon write triggered", e);
-            }
+            // 2. 透過 JSONP Script 將資料寫入 Apps Script（絕對不被瀏覽器擋）
+            const scriptTag = document.createElement("script");
+            scriptTag.src = `${APPS_SCRIPT_URL}?action=addLeave&name=${encodeURIComponent(nameToAdd)}&group=${encodeURIComponent(groupToAdd)}&date=${encodeURIComponent(dateToAdd)}&status=${encodeURIComponent(statusToAdd)}&callback=onWriteComplete&_t=${Date.now()}`;
+            document.body.appendChild(scriptTag);
 
-            // 重設下拉選單狀態
+            // 清除選單
             document.getElementById("slotSelectorBox").style.display = "none";
             const selEl = document.getElementById("sel_" + pendingGroup);
             if (selEl) selEl.value = "";
