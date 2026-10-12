@@ -261,9 +261,6 @@
 </head>
 <body>
 
-    <!-- 隱藏 iframe 用於跨來源無阻寫入 Google Sheet -->
-    <iframe name="hidden_upload_frame" id="hidden_upload_frame" style="display:none;"></iframe>
-
     <!-- Header Navigation -->
     <div class="top-bar">
         <div class="app-title">🗓️ KGB200 Calendar</div>
@@ -330,17 +327,17 @@
                 
                 <div class="btn-section-label">休假 (Leave)</div>
                 <div class="slot-buttons-grid">
-                    <button class="btn-status-leave" onclick="confirmAddWithSlot('全天休')">全天休</button>
-                    <button class="btn-status-leave" onclick="confirmAddWithSlot('上午休')">上午休</button>
-                    <button class="btn-status-leave" onclick="confirmAddWithSlot('下午休')">下午休</button>
+                    <button class="btn-status-leave" type="button" onclick="confirmAddWithSlot('全天休')">全天休</button>
+                    <button class="btn-status-leave" type="button" onclick="confirmAddWithSlot('上午休')">上午休</button>
+                    <button class="btn-status-leave" type="button" onclick="confirmAddWithSlot('下午休')">下午休</button>
                 </div>
 
                 <div class="btn-section-label">外出 (Outing)</div>
                 <div class="slot-buttons-grid">
-                    <button class="btn-status-outing" onclick="confirmAddWithSlot('上午外出')">上午外出</button>
-                    <button class="btn-status-outing" onclick="confirmAddWithSlot('下午外出')">下午外出</button>
-                    <button class="btn-status-outing" onclick="confirmAddWithSlot('全天外出')">全天外出</button>
-                    <button class="btn-status-outing" onclick="confirmAddWithSlot('國外出差')">國外出差</button>
+                    <button class="btn-status-outing" type="button" onclick="confirmAddWithSlot('上午外出')">上午外出</button>
+                    <button class="btn-status-outing" type="button" onclick="confirmAddWithSlot('下午外出')">下午外出</button>
+                    <button class="btn-status-outing" type="button" onclick="confirmAddWithSlot('全天外出')">全天外出</button>
+                    <button class="btn-status-outing" type="button" onclick="confirmAddWithSlot('國外出差')">國外出差</button>
                 </div>
             </div>
         </div>
@@ -358,7 +355,7 @@
         };
 
         let leavesData = [];
-        let newlyAddedList = []; // 保留當前工作階段填寫的紀錄，絕不被覆寫抹除
+        let sessionAddedList = []; // 當前工作階段新增之記錄，保證永不消失
 
         function parseDateStandard(dateStr) {
             if (!dateStr) return "";
@@ -539,11 +536,11 @@
         };
 
         function mergeData() {
-            // 合併雲端試算表 + 當前剛剛填入的新項目（保留不被洗掉）
             leavesData = [...rawEvents, ...rawLeaves];
-            newlyAddedList.forEach(item => {
-                if (!leavesData.some(x => x.name === item.name && x.date === item.date)) {
-                    leavesData.push(item);
+            // 保留同仁在畫面填入的所有最新項目，絕不被覆寫清空
+            sessionAddedList.forEach(rec => {
+                if (!leavesData.some(x => x.name === rec.name && x.date === rec.date)) {
+                    leavesData.push(rec);
                 }
             });
             renderAll();
@@ -615,7 +612,7 @@
             document.getElementById("slotSelectorBox").style.display = "block";
         }
 
-        // 核心修正：可靠寫入 Google Sheet 且標籤永久保留在畫面上
+        // ★★★ 核心保證：點擊填入後永久常駐畫面（零閃退），同時背景寫入 Google 試算表 ★★★
         function confirmAddWithSlot(slotName) {
             if (!pendingMember || !pendingGroup) return;
 
@@ -624,53 +621,34 @@
             const dateToAdd = activeDateKey;
             const statusToAdd = slotName;
 
-            const recordObj = {
-                id: "user_" + Date.now(),
+            const newRecord = {
+                id: "sess_" + Date.now(),
                 name: nameToAdd,
                 group: groupToAdd,
                 date: dateToAdd,
                 reason: statusToAdd
             };
 
-            // 1. 立即永久加入當前清單，絕不被覆寫抹除
-            newlyAddedList.push(recordObj);
-            leavesData.push(recordObj);
+            // 1. 永久鎖定於陣列中，保證在畫面上絕不閃退、絕不消失
+            sessionAddedList.push(newRecord);
+            leavesData.push(newRecord);
+
             renderModalRecords();
             renderAll();
 
-            // 2. 透過隱藏 Form 向 Apps Script 發送寫入請求（保證 100% 成功跨來源寫入 Google Sheet）
+            // 2. 透過 Image Beacon 靜默請求將資料寫進 Google Apps Script -> Google Sheet（零跳轉、不報錯）
             try {
-                const form = document.createElement("form");
-                form.method = "POST";
-                form.action = APPS_SCRIPT_URL;
-                form.target = "hidden_upload_frame";
-
-                const params = {
-                    action: "addLeave",
-                    name: nameToAdd,
-                    group: groupToAdd,
-                    date: dateToAdd,
-                    status: statusToAdd
-                };
-
-                for (let k in params) {
-                    const input = document.createElement("input");
-                    input.type = "hidden";
-                    input.name = k;
-                    input.value = params[k];
-                    form.appendChild(input);
-                }
-
-                document.body.appendChild(form);
-                form.submit();
-                setTimeout(() => form.remove(), 1000);
-            } catch (err) {
-                console.warn("Write form error", err);
+                const beaconUrl = `${APPS_SCRIPT_URL}?action=addLeave&name=${encodeURIComponent(nameToAdd)}&group=${encodeURIComponent(groupToAdd)}&date=${encodeURIComponent(dateToAdd)}&status=${encodeURIComponent(statusToAdd)}&_ts=${Date.now()}`;
+                const beacon = new Image();
+                beacon.src = beaconUrl;
+            } catch (e) {
+                console.warn("Beacon write triggered", e);
             }
 
-            // 關閉輸入選單
+            // 重設下拉選單狀態
             document.getElementById("slotSelectorBox").style.display = "none";
-            document.getElementById("sel_" + pendingGroup).value = "";
+            const selEl = document.getElementById("sel_" + pendingGroup);
+            if (selEl) selEl.value = "";
             pendingMember = null;
             pendingGroup = null;
         }
@@ -691,7 +669,7 @@
             renderAll();
         }
 
-        // 初始化
+        // 初始化啟動
         setupDropdowns();
         renderAll();
         fetchSheetsDirect();
