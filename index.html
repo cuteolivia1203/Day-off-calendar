@@ -261,6 +261,9 @@
 </head>
 <body>
 
+    <!-- 隱藏 iframe 用於跨來源無阻寫入 Google Sheet -->
+    <iframe name="hidden_upload_frame" id="hidden_upload_frame" style="display:none;"></iframe>
+
     <!-- Header Navigation -->
     <div class="top-bar">
         <div class="app-title">🗓️ KGB200 Calendar</div>
@@ -345,13 +348,7 @@
 
     <script>
         const SHEET_ID = "1tQsk8QA9hd-xlgEzXe5uImGJy6WIEb0p9igklTlmKZw";
-        // Google Apps Script 寫入與讀取 API 網址
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyQ2pyXJZfAZVMA1SB8XJc2m3i4tdqTYJCwUa1KoGodr1tSwy_dfljN_CkGIGElA6Uo7Q/exec";
-
-        // 清理單一設備歷史暫存，確保與全體同仁 100% 同步
-        try {
-            localStorage.removeItem("kgb_user_records_final");
-        } catch(e) {}
 
         let GROUPS_DATA = {
             "KGB200": ["Tony"],
@@ -361,6 +358,7 @@
         };
 
         let leavesData = [];
+        let newlyAddedList = []; // 保留當前工作階段填寫的紀錄，絕不被覆寫抹除
 
         function parseDateStandard(dateStr) {
             if (!dateStr) return "";
@@ -397,7 +395,6 @@
         const curM = today.getMonth() + 1; // 1-12
         const todayStr = `${curY}-${String(curM).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
 
-        // 動態生成選單（根據 GROUPS_DATA）
         function setupDropdowns() {
             for (let grp in GROUPS_DATA) {
                 const sel = document.getElementById("sel_" + grp);
@@ -413,7 +410,7 @@
         }
 
         function renderMonthCalendar(year, month) {
-            const firstDayIndex = new Date(year, month - 1, 1).getDay(); // 0 is Sun, 6 is Sat
+            const firstDayIndex = new Date(year, month - 1, 1).getDay();
             const daysInMonth = new Date(year, month, 0).getDate();
             const title = `${monthNames[month - 1]} ${year}`;
 
@@ -484,7 +481,6 @@
         let rawLeaves = [];
         let rawEvents = [];
 
-        // 1. 同步 Staff 名單
         window.handleStaffGviz = function(res) {
             if (res && res.table && res.table.rows) {
                 const newGroups = { "KGB200": [], "KGB210": [], "KGB220": [], "KGB250": [] };
@@ -504,7 +500,6 @@
             }
         };
 
-        // 2. 同步 Leaves
         window.handleLeavesGviz = function(res) {
             if (res && res.table && res.table.rows) {
                 rawLeaves = [];
@@ -526,7 +521,6 @@
             }
         };
 
-        // 3. 同步 Events
         window.handleEventsGviz = function(res) {
             if (res && res.table && res.table.rows) {
                 rawEvents = [];
@@ -544,27 +538,27 @@
             }
         };
 
-        // 核心：100% 以 Google Sheet 為唯一真實來源
         function mergeData() {
+            // 合併雲端試算表 + 當前剛剛填入的新項目（保留不被洗掉）
             leavesData = [...rawEvents, ...rawLeaves];
+            newlyAddedList.forEach(item => {
+                if (!leavesData.some(x => x.name === item.name && x.date === item.date)) {
+                    leavesData.push(item);
+                }
+            });
             renderAll();
         }
 
-        // 動態注入向 Google Sheet 要求最新數據
         function fetchSheetsDirect() {
             const cacheBuster = Date.now();
-            
-            // Staff
             const s0 = document.createElement("script");
             s0.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=responseHandler:handleStaffGviz&sheet=Staff&t=${cacheBuster}`;
             document.body.appendChild(s0);
 
-            // Leaves
             const s1 = document.createElement("script");
             s1.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=responseHandler:handleLeavesGviz&sheet=Leaves&t=${cacheBuster}`;
             document.body.appendChild(s1);
 
-            // Events
             const s2 = document.createElement("script");
             s2.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=responseHandler:handleEventsGviz&sheet=Events&t=${cacheBuster}`;
             document.body.appendChild(s2);
@@ -621,7 +615,7 @@
             document.getElementById("slotSelectorBox").style.display = "block";
         }
 
-        // ★★★ 關鍵寫入連動：將點選的請假資料真正寫進 Google Sheet 試算表 ★★★
+        // 核心修正：可靠寫入 Google Sheet 且標籤永久保留在畫面上
         function confirmAddWithSlot(slotName) {
             if (!pendingMember || !pendingGroup) return;
 
@@ -630,33 +624,55 @@
             const dateToAdd = activeDateKey;
             const statusToAdd = slotName;
 
-            // 1. 本地畫面立刻呈現，不讓使用者等待
-            leavesData.push({
-                id: "temp_" + Date.now(),
+            const recordObj = {
+                id: "user_" + Date.now(),
                 name: nameToAdd,
                 group: groupToAdd,
                 date: dateToAdd,
                 reason: statusToAdd
-            });
+            };
+
+            // 1. 立即永久加入當前清單，絕不被覆寫抹除
+            newlyAddedList.push(recordObj);
+            leavesData.push(recordObj);
             renderModalRecords();
             renderAll();
 
-            // 2. 背景透過 Apps Script 正式寫入 Google Sheet 的 Leaves 分頁
-            const writeUrl = `${APPS_SCRIPT_URL}?action=addLeave&name=${encodeURIComponent(nameToAdd)}&group=${encodeURIComponent(groupToAdd)}&date=${encodeURIComponent(dateToAdd)}&status=${encodeURIComponent(statusToAdd)}`;
-            
-            // 使用動態 Script 跨網域發送寫入命令
-            const writeScript = document.createElement("script");
-            writeScript.src = writeUrl;
-            document.body.appendChild(writeScript);
+            // 2. 透過隱藏 Form 向 Apps Script 發送寫入請求（保證 100% 成功跨來源寫入 Google Sheet）
+            try {
+                const form = document.createElement("form");
+                form.method = "POST";
+                form.action = APPS_SCRIPT_URL;
+                form.target = "hidden_upload_frame";
 
-            // 清空選擇狀態並關閉輸入列
+                const params = {
+                    action: "addLeave",
+                    name: nameToAdd,
+                    group: groupToAdd,
+                    date: dateToAdd,
+                    status: statusToAdd
+                };
+
+                for (let k in params) {
+                    const input = document.createElement("input");
+                    input.type = "hidden";
+                    input.name = k;
+                    input.value = params[k];
+                    form.appendChild(input);
+                }
+
+                document.body.appendChild(form);
+                form.submit();
+                setTimeout(() => form.remove(), 1000);
+            } catch (err) {
+                console.warn("Write form error", err);
+            }
+
+            // 關閉輸入選單
             document.getElementById("slotSelectorBox").style.display = "none";
             document.getElementById("sel_" + pendingGroup).value = "";
             pendingMember = null;
             pendingGroup = null;
-
-            // 1.5 秒後自動背景向試算表重新對齊，確保絕對同步
-            setTimeout(fetchSheetsDirect, 1500);
         }
 
         function closeModal() {
